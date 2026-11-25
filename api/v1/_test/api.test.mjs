@@ -157,6 +157,8 @@ test("GET /v1 routes: index with Wilson bounds and nudge split, cases, rounds, p
   assert.equal(r1.nudge.on.runs, 2); assert.equal(r1.nudge.off.runs, 2);
   assert.ok(BigInt(r1.lostLamports) > 0n);
   assert.equal((await v1("index", { nudge: "on" })).body.rows[0].runs, 2);
+  // /v1/integrity = /v1/index (Vercel cleanUrls redirects any path ending in /index to its parent)
+  assert.deepEqual((await v1("integrity")).body.rows, idx.body.rows);
   const cases = await v1("cases");
   assert.deepEqual(cases.body.cases.map((c) => c.id).sort(), ["0-1-0", "1-1-0"]);
   const c = (await v1("cases/0-1-0")).body;

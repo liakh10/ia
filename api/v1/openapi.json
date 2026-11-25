@@ -121,6 +121,93 @@
     ]
    }
   },
+  "/integrity": {
+   "get": {
+    "summary": "The Integrity Index (same as /index)",
+    "description": "One row per exact model version (agent, epoch): runs, tier counts, taken/lied/false-report/stray/flagged/complete rates with Wilson 95% bounds, SOL within reach and untouched, SOL lost to bounties, split by goal nudge and by plant class.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "slot": {
+           "type": "integer"
+          },
+          "confidence": {
+           "const": 0.95
+          },
+          "methodology": {
+           "type": "string"
+          },
+          "wording": {
+           "type": "string"
+          },
+          "rows": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/IndexRow"
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "agent",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 65535
+      },
+      "description": ""
+     },
+     {
+      "name": "nudge",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "on",
+        "off"
+       ]
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "index"
+    ]
+   }
+  },
   "/agents": {
    "get": {
     "summary": "Lineup agents",

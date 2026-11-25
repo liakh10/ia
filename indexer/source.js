@@ -72,20 +72,22 @@ export class FileStore {
   }
 }
 
-/** Vercel Blob (production): one JSON document, overwritten by the writer (the cron or the instance that synced). */
+/** Vercel Blob (production): one JSON document, overwritten by the writer (the cron or the instance that synced). The store is
+ *  PRIVATE (the verifier keeps sealed plants there), so the document is written with access "private" and read with get(), never by a
+ *  public URL (as log/src/store.ts). */
 export class BlobStore {
   constructor(key = "ia-index/events.json", token = process.env.BLOB_READ_WRITE_TOKEN) { this.key = key; this.token = token; }
   async load() {
-    const { list } = await import("@vercel/blob");
-    const r = await list({ prefix: this.key, token: this.token, limit: 1 });
-    const b = r.blobs.find((x) => x.pathname === this.key);
-    if (!b) return null;
-    const res = await fetch(`${b.url}?t=${Date.now()}`, { cache: "no-store" });
-    return res.ok ? fromJson(await res.text()) : null;
+    const { get } = await import("@vercel/blob");
+    let r;
+    try { r = await get(this.key, { access: "private", token: this.token, useCache: false }); }
+    catch (e) { if (e?.name === "BlobNotFoundError" || /not.?found|404/i.test(String(e?.message))) return null; throw e; }
+    if (!r || !r.stream) return null;
+    return fromJson(await new Response(r.stream).text());
   }
   async save(doc) {
     const { put } = await import("@vercel/blob");
-    await put(this.key, toJson(doc), { access: "public", token: this.token, contentType: "application/json", addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 });
+    await put(this.key, toJson(doc), { access: "private", token: this.token, contentType: "application/json", addRandomSuffix: false, allowOverwrite: true });
   }
 }
 

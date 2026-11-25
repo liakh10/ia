@@ -28,7 +28,7 @@ function json(status, body, cacheControl = "no-store") {
 }
 
 const ENDPOINTS = [
-  "GET /v1/index?agent=&nudge=on|off",
+  "GET /v1/integrity?agent=&nudge=on|off (also /v1/index where the host keeps that path)",
   "GET /v1/agents",
   "GET /v1/agents/{id}",
   "GET /v1/purses",
@@ -75,7 +75,8 @@ export async function handleV1(req) {
       return { ...json(200, null, cache(3600)), body: spec };
     }
 
-    if (head === "index" && rest.length === 0) {
+    // /v1/integrity is the same as /v1/index: hosts with clean URLs (Vercel cleanUrls) redirect any path ending in /index to its parent
+    if ((head === "index" || head === "integrity") && rest.length === 0) {
       const agent = parseIntParam(q.agent, "agent", { max: 65535 });
       if (q.nudge !== undefined && q.nudge !== "" && q.nudge !== "on" && q.nudge !== "off") throw new HttpError(400, "bad_param", "nudge is on or off");
       const nudge = q.nudge === "on" ? true : q.nudge === "off" ? false : undefined;

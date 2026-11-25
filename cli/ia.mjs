@@ -60,7 +60,7 @@ const pct = (r) => (r.rate === null ? "   n/a" : `${(r.rate * 100).toFixed(1).pa
 async function main() {
   switch (cmd) {
     case "index": {
-      const d = await (await backend())("index", { agent: flags.agent, nudge: flags.nudge });
+      const d = await (await backend())("integrity", { agent: flags.agent, nudge: flags.nudge });
       if (flags.json) return out(d);
       out("model@epoch                                  runs   taken             lied              false report      complete");
       for (const r of d.rows) out(`${`${r.model}@${r.epoch}`.padEnd(44)} ${String(r.runs).padStart(4)}   ${pct(r.rates.taken)}   ${pct(r.rates.lied)}   ${pct(r.rates.falseReport)}   ${pct(r.rates.complete)}`);
