@@ -23,7 +23,7 @@ export async function driveModel(sb, { nudge, params, agentId }) {
     }
     // the exact request body sent and the exact response body (CONTRACT §6; replay resends `request` as is)
     await sb.note('assistant', {
-      request: res.request, response: res.raw, served_model: res.modelVersion, version_match: res.versionMatch,
+      request: res.request, response: res.raw, text: res.text, served_model: res.modelVersion, version_match: res.versionMatch,
       http_request_id: res.httpRequestId, usage: res.usage, usd: Number(res.usd.toFixed(6)),
     }, { requestId: res.requestId });
     messages.push({ role: 'assistant', native: res.message });

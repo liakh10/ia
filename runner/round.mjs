@@ -165,6 +165,8 @@ export async function crank(chain, { lineup, once = false, onEnrol, params, emit
     if (prev && prev.state !== 2) seq = next - 1n;
     else {
       const ids = lineup || await activeAgents(chain, cfg);
+      // sureties enter and leave between rounds: open_round waits exit_gap slots after the previous round settled (IA-17)
+      if (prev && prev.settleSlot !== undefined && cfg.params.exitGap !== undefined) await chain.waitSlot(big(prev.settleSlot) + big(cfg.params.exitGap) - 1n);
       seq = (await chain.openRound(ids)).seq;
       log(`opened round ${seq}`);
     }
