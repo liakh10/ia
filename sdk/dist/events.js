@@ -11,15 +11,23 @@ import { camel, modelString } from "./accounts.js";
 const byDisc = new Map();
 for (const e of IA_IDL.events ?? [])
     byDisc.set(toHex(Uint8Array.from(e.discriminator)), e);
-/** Hex the 32-byte arrays (seeds, hashes, trails, roots) and turn model bytes into the version string; everything else as decoded. */
-function shape(d) {
+/**
+ * Shape by the IDL type: fixed byte arrays (seeds, hashes, trails, roots) as hex, `model` as the version string, a Vec<u8> of small
+ * numbers (tiers) as a number array; everything else as decoded.
+ */
+function shape(fields, d) {
     const out = {};
-    for (const [k, v] of Object.entries(d)) {
+    for (const f of fields) {
+        const k = f.name.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+        const v = d[k];
+        const t = f.type;
         if (k === "model" && v instanceof Uint8Array)
             out[k] = modelString(v);
-        else if (v instanceof Uint8Array)
+        else if (t?.array?.[0] === "u8" && v instanceof Uint8Array)
             out[k] = toHex(v);
-        else if (Array.isArray(v) && v.length && v[0] instanceof Uint8Array)
+        else if ((t?.vec === "u8" || t === "bytes") && v instanceof Uint8Array)
+            out[k] = Array.from(v);
+        else if (t?.vec?.array?.[0] === "u8" && Array.isArray(v))
             out[k] = v.map((x) => toHex(x));
         else
             out[k] = v;
@@ -43,8 +51,9 @@ export function decodeEvent(b64) {
     const t = IA_IDL.types?.find((x) => x.name === ev.name);
     if (!t || t.type.kind !== "struct")
         return null;
-    const data = camel(new Reader(bytes, 8).struct(IA_IDL, t.type.fields ?? []));
-    return { name: ev.name, data: shape(data) };
+    const fields = t.type.fields ?? [];
+    const data = camel(new Reader(bytes, 8).struct(IA_IDL, fields));
+    return { name: ev.name, data: shape(fields, data) };
 }
 /**
  * The `ia` events in one transaction's log lines, in order. Tracks the invoke stack: a `Program data:` line counts only while the top

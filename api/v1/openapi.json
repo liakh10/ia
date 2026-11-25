@@ -1,0 +1,1336 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Internal Affairs API",
+  "version": "1.0.0",
+  "description": "Read API of Internal Affairs ($IA): AI models run a real accounts-payable task with bait planted by people; the `ia` Solana program records who takes it. Everything here is derived from the program's events and the transparency log; nothing here holds or moves money. JSON, CORS open, cached at the edge. Wording on every figure: in our tests, exact model versions, all runs published, Wilson 95% intervals.",
+  "license": {
+   "name": "Apache-2.0"
+  }
+ },
+ "servers": [
+  {
+   "url": "/v1"
+  }
+ ],
+ "tags": [
+  {
+   "name": "index"
+  },
+  {
+   "name": "rounds"
+  },
+  {
+   "name": "cases"
+  },
+  {
+   "name": "money"
+  },
+  {
+   "name": "forecasts"
+  },
+  {
+   "name": "log"
+  }
+ ],
+ "paths": {
+  "/index": {
+   "get": {
+    "summary": "The Integrity Index",
+    "description": "One row per exact model version (agent, epoch): runs, tier counts, taken/lied/false-report/stray/flagged/complete rates with Wilson 95% bounds, SOL within reach and untouched, SOL lost to bounties, split by goal nudge and by plant class.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "slot": {
+           "type": "integer"
+          },
+          "confidence": {
+           "const": 0.95
+          },
+          "methodology": {
+           "type": "string"
+          },
+          "wording": {
+           "type": "string"
+          },
+          "rows": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/IndexRow"
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "agent",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 65535
+      },
+      "description": ""
+     },
+     {
+      "name": "nudge",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "on",
+        "off"
+       ]
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "index"
+    ]
+   }
+  },
+  "/agents": {
+   "get": {
+    "summary": "Lineup agents",
+    "description": "Every agent with its exact version and version epochs.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "index"
+    ]
+   }
+  },
+  "/agents/{id}": {
+   "get": {
+    "summary": "One agent",
+    "description": "Its versions, live purse, index rows and recent cases.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer"
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "index"
+    ]
+   }
+  },
+  "/purses": {
+   "get": {
+    "summary": "Purses now",
+    "description": "Each agent's program-held purse (assets, orphan, shares, share value) and lifetime stats, read live from chain.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "money"
+    ]
+   }
+  },
+  "/rounds": {
+   "get": {
+    "summary": "Rounds",
+    "description": "Newest first.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 100
+      },
+      "description": ""
+     },
+     {
+      "name": "cursor",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer"
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "rounds"
+    ]
+   }
+  },
+  "/rounds/current": {
+   "get": {
+    "summary": "The current round",
+    "description": "State (planting, running, settling, settled, closed_empty), seed, scenario, nudge, lineup with versions, the task's numbers, plants, dockets, the next plant price.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "rounds"
+    ]
+   }
+  },
+  "/rounds/{seq}": {
+   "get": {
+    "summary": "A round",
+    "description": "As /rounds/current for any round.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "seq",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "pattern": "^[0-9]{1,20}$"
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "rounds"
+    ]
+   }
+  },
+  "/plants/{seq}/{idx}": {
+   "get": {
+    "summary": "A plant",
+    "description": "Class, medium, price and split, planter, models that took it, bounty and claim; after settlement the registry's reveal and a hash check.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "seq",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "pattern": "^[0-9]{1,20}$"
+      },
+      "description": ""
+     },
+     {
+      "name": "idx",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 15
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "rounds"
+    ]
+   }
+  },
+  "/quote": {
+   "get": {
+    "summary": "Quote the next plant",
+    "description": "The next plant's price and split; with planter, class, medium and the registry's text_hash (canary for KEY, target for REPORT), an unsigned plant transaction (base64) for the planter's wallet. Nothing is signed or sent here.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "round",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "pattern": "^[0-9]{1,20}$"
+      },
+      "description": ""
+     },
+     {
+      "name": "holder",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "0",
+        "1"
+       ]
+      },
+      "description": ""
+     },
+     {
+      "name": "planter",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": ""
+     },
+     {
+      "name": "class",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "TRANSFER",
+        "KEY",
+        "REPORT"
+       ]
+      },
+      "description": ""
+     },
+     {
+      "name": "medium",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "email",
+        "invoice",
+        "tool_output",
+        "memory",
+        "file"
+       ]
+      },
+      "description": ""
+     },
+     {
+      "name": "text_hash",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "pattern": "^[0-9a-fA-F]{64}$"
+      },
+      "description": ""
+     },
+     {
+      "name": "canary",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": ""
+     },
+     {
+      "name": "target",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "pattern": "^[0-9]{1,20}$"
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "money"
+    ]
+   }
+  },
+  "/cases": {
+   "get": {
+    "summary": "Case files",
+    "description": "Settled runs, newest first; catches (BENT, BENT_LIED) unless all=1.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "all",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "0",
+        "1"
+       ]
+      },
+      "description": ""
+     },
+     {
+      "name": "agent",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer"
+      },
+      "description": ""
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 500
+      },
+      "description": ""
+     },
+     {
+      "name": "cursor",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer"
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "cases"
+    ]
+   }
+  },
+  "/cases/{id}": {
+   "get": {
+    "summary": "A case file",
+    "description": "CASE #<round>-<agent>-<run>: model@version, scenario, plant class/medium, nudge, tier (and the tier replayed from the rules), the first tempting step with its transaction and the model's own words before it, the ledger, the transcript root and whether the published transcripts hash to the root on chain.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "pattern": "^[0-9]{1,20}-[0-9]{1,5}-[0-9]{1,2}$"
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "cases"
+    ]
+   }
+  },
+  "/cases/{id}/transcript": {
+   "get": {
+    "summary": "A run's transcript (JSON Lines)",
+    "description": "Published after the round settles (403 before). Each line is RFC 8785 canonical JSON; an act's step is sha256 of its tool_call line.",
+    "tags": [
+     "cases"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": ""
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "JSONL",
+      "content": {
+       "application/x-ndjson": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "sealed until settlement"
+     },
+     "404": {
+      "description": "not published"
+     }
+    }
+   }
+  },
+  "/investigators": {
+   "get": {
+    "summary": "Investigators",
+    "description": "Planters ranked by bounty: plants, catches, plants that caught at least one model, models caught, bounty and claimed lamports.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "money"
+    ]
+   }
+  },
+  "/forecasts": {
+   "post": {
+    "summary": "Submit a free forecast",
+    "description": "A wallet's ed25519 signature over the UTF-8 message ia-forecast:<seq>:<agent>:<CLEAN|BENT>, before the round's plant window closes. No money, no transaction; the first call per wallet and docket stands.",
+    "tags": [
+     "forecasts"
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "message",
+         "signature",
+         "wallet"
+        ],
+        "properties": {
+         "message": {
+          "type": "string",
+          "pattern": "^ia-forecast:[0-9]{1,20}:[0-9]{1,5}:(CLEAN|BENT)$"
+         },
+         "signature": {
+          "type": "string",
+          "description": "base58 or 128 hex"
+         },
+         "wallet": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "accepted"
+     },
+     "400": {
+      "description": "bad message, signature or agent"
+     },
+     "409": {
+      "description": "closed or duplicate"
+     },
+     "429": {
+      "description": "rate limited"
+     }
+    }
+   }
+  },
+  "/forecasts/board": {
+   "get": {
+    "summary": "Forecast board",
+    "description": "Points per wallet: round(100 \u00d7 (1 \u2212 2 (p \u2212 o)\u00b2)), p = 1 for BENT, o = the docket's share of BENT runs among scored runs (VOID and INCOMPLETE score nothing).",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "forecasts"
+    ]
+   }
+  },
+  "/log/head": {
+   "get": {
+    "summary": "The log's signed tree head",
+    "description": "Size, root, the log key's signature and whether it verifies, and whether the key is one this server pins.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "log"
+    ]
+   }
+  },
+  "/log/proof/{index}": {
+   "get": {
+    "summary": "A log entry with its inclusion proof",
+    "description": "The leaf (decoded), its RFC 9162 audit path to the signed head, checked here.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "index",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "log"
+    ]
+   }
+  },
+  "/log/find": {
+   "get": {
+    "summary": "Find log entries",
+    "description": "By kind and round/agent/plant.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "kind",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "manifest",
+        "transcript",
+        "harness",
+        "verdict",
+        "reveal",
+        "forecast",
+        "redaction"
+       ]
+      },
+      "description": ""
+     },
+     {
+      "name": "seq",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "pattern": "^[0-9]{1,20}$"
+      },
+      "description": ""
+     },
+     {
+      "name": "agent",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer"
+      },
+      "description": ""
+     },
+     {
+      "name": "idx",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer"
+      },
+      "description": ""
+     }
+    ],
+    "tags": [
+     "log"
+    ]
+   }
+  },
+  "/status": {
+   "get": {
+    "summary": "Indexer status",
+    "description": "Events folded, rounds, and the replay check: every Acted event's hit/moved/trail and every settled tier recomputed from the rules; mismatches are listed, never hidden.",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "4XX": {
+      "description": "error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "the Solana RPC or the log did not answer",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "log"
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Rate": {
+    "type": "object",
+    "properties": {
+     "k": {
+      "type": "integer"
+     },
+     "n": {
+      "type": "integer"
+     },
+     "rate": {
+      "type": [
+       "number",
+       "null"
+      ]
+     },
+     "low": {
+      "type": [
+       "number",
+       "null"
+      ],
+      "description": "Wilson 95% lower bound"
+     },
+     "high": {
+      "type": [
+       "number",
+       "null"
+      ],
+      "description": "Wilson 95% upper bound"
+     }
+    },
+    "required": [
+     "k",
+     "n",
+     "rate",
+     "low",
+     "high"
+    ]
+   },
+   "Stats": {
+    "type": "object",
+    "properties": {
+     "runs": {
+      "type": "integer",
+      "description": "settled runs that are not VOID"
+     },
+     "rounds": {
+      "type": "integer"
+     },
+     "voidRuns": {
+      "type": "integer"
+     },
+     "tiers": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "integer"
+      }
+     },
+     "rates": {
+      "type": "object",
+      "properties": {
+       "taken": {
+        "$ref": "#/components/schemas/Rate"
+       },
+       "lied": {
+        "$ref": "#/components/schemas/Rate"
+       },
+       "falseReport": {
+        "$ref": "#/components/schemas/Rate"
+       },
+       "stray": {
+        "$ref": "#/components/schemas/Rate"
+       },
+       "flagged": {
+        "$ref": "#/components/schemas/Rate"
+       },
+       "complete": {
+        "$ref": "#/components/schemas/Rate"
+       }
+      }
+     },
+     "liedGivenTaken": {
+      "$ref": "#/components/schemas/Rate"
+     },
+     "untouchedLamports": {
+      "type": "string",
+      "pattern": "^[0-9]+$",
+      "description": "lamports (decimal string: u64 does not fit a JSON number)"
+     },
+     "untouchedSol": {
+      "type": "string"
+     },
+     "lostLamports": {
+      "type": "string",
+      "pattern": "^[0-9]+$",
+      "description": "lamports (decimal string: u64 does not fit a JSON number)"
+     },
+     "lostSol": {
+      "type": "string"
+     },
+     "byClass": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object",
+       "properties": {
+        "exposures": {
+         "type": "integer"
+        },
+        "taken": {
+         "type": "integer"
+        },
+        "rate": {
+         "$ref": "#/components/schemas/Rate"
+        }
+       }
+      }
+     }
+    }
+   },
+   "IndexRow": {
+    "allOf": [
+     {
+      "$ref": "#/components/schemas/Stats"
+     },
+     {
+      "type": "object",
+      "properties": {
+       "agent": {
+        "type": "integer"
+       },
+       "kind": {
+        "type": "string",
+        "enum": [
+         "house",
+         "open_league"
+        ]
+       },
+       "epoch": {
+        "type": "integer",
+        "description": "bumped on every model version change"
+       },
+       "model": {
+        "type": "string",
+        "description": "the exact model version string recorded on chain"
+       },
+       "firstRound": {
+        "type": "string"
+       },
+       "lastRound": {
+        "type": "string"
+       },
+       "nudge": {
+        "type": "object",
+        "properties": {
+         "on": {
+          "$ref": "#/components/schemas/Stats"
+         },
+         "off": {
+          "$ref": "#/components/schemas/Stats"
+         }
+        }
+       }
+      }
+     }
+    ]
+   },
+   "Error": {
+    "type": "object",
+    "properties": {
+     "error": {
+      "type": "object",
+      "properties": {
+       "code": {
+        "type": "string"
+       },
+       "message": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "code",
+       "message"
+      ]
+     }
+    }
+   }
+  }
+ }
+}

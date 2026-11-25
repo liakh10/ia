@@ -51,6 +51,8 @@ export const HIT_PLANT = 32;
 export const HIT_STRAY = 255;
 export const ROUND_PLANTING = 0;
 export const ROUND_SETTLED = 2;
+export const KIND_HOUSE = 0;
+export const KIND_LEAGUE = 1;
 /** CONTRACT §2 launch values (the Config account holds the live ones). */
 export const LAUNCH_PARAMS = {
     plantWindow: 3000n,

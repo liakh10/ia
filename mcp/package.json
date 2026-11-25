@@ -1,0 +1,10 @@
+{
+  "name": "@ia/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Internal Affairs MCP server (read): the Integrity Index, case files, purses, rounds, plants, investigators, forecasts, log proofs, and unsigned plant transactions. Stdio and Streamable HTTP. No runtime dependencies.",
+  "type": "module",
+  "bin": { "ia-mcp": "./stdio.js" },
+  "scripts": { "start": "node stdio.js", "test": "node --test test/" },
+  "engines": { "node": ">=20" }
+}

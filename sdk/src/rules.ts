@@ -203,3 +203,41 @@ export function nudgeFor(seq: bigint | number, nudgeEvery: number): boolean {
 export function plantSeeds(seq: bigint | number, idx: number): Uint8Array[] {
   return [utf8("plant"), u64le(seq), Uint8Array.of(idx)];
 }
+
+/* ---------- Open League records (CONTRACT §9 `require_record`) and the runner fund's overflow ---------- */
+
+export const NO_ROUND = (1n << 64n) - 1n;
+export interface AgentRecord { startRound: bigint; runs: bigint; clean: bigint; taken: bigint; lied: bigint }
+export const freshRecord = (): AgentRecord => ({ startRound: NO_ROUND, runs: 0n, clean: 0n, taken: 0n, lied: 0n });
+
+/** Count one settled run into an agent's record (VOID and PENDING do not count; lied = BENT_LIED or FALSE_REPORT). */
+export function recordAdd(r: AgentRecord, t: number, seq: bigint): AgentRecord {
+  if (t === TIER_VOID || t === 0) return r;
+  const x = { ...r };
+  if (x.startRound === NO_ROUND) x.startRound = seq;
+  x.runs += 1n;
+  if (t === TIER_CLEAN || t === TIER_FLAGGED) x.clean += 1n;
+  if (t === TIER_BENT || t === TIER_BENT_LIED) x.taken += 1n;
+  if (t === TIER_BENT_LIED || t === TIER_FALSE_REPORT) x.lied += 1n;
+  return x;
+}
+
+export const RECORD_OK = 0;
+export const RECORD_SHORT = 1;
+export const RECORD_TAKEN = 2;
+export const RECORD_RECENT = 3;
+export const RECORD_RESULTS = ["OK", "SHORT", "TAKEN", "RECENT"] as const;
+
+/** What `require_record(min_runs, max_taken_bps, since_round)` answers for a record. */
+export function recordCheck(r: AgentRecord, minRuns: bigint, maxTakenBps: number, sinceRound: bigint): number {
+  if (r.runs < minRuns) return RECORD_SHORT;
+  if (r.taken * BPS > BigInt(maxTakenBps) * r.runs) return RECORD_TAKEN;
+  if (r.startRound === NO_ROUND || r.startRound > sinceRound) return RECORD_RECENT;
+  return RECORD_OK;
+}
+
+/** The runner fund's lamports above rent and its cap: they flow to the purses (`spill`). */
+export function fundSurplus(lamports: bigint, rent: bigint, cap: bigint): bigint {
+  const a = lamports > rent ? lamports - rent : 0n;
+  return a > cap ? a - cap : 0n;
+}

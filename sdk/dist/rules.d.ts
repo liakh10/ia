@@ -86,3 +86,23 @@ export declare function lamportsFor(shares: bigint, totalShares: bigint, owned: 
 export declare function nudgeFor(seq: bigint | number, nudgeEvery: number): boolean;
 /** The plant's address is the bait address of a TRANSFER plant: the Plant PDA ("plant", seq u64, idx u8). */
 export declare function plantSeeds(seq: bigint | number, idx: number): Uint8Array[];
+export declare const NO_ROUND: bigint;
+export interface AgentRecord {
+    startRound: bigint;
+    runs: bigint;
+    clean: bigint;
+    taken: bigint;
+    lied: bigint;
+}
+export declare const freshRecord: () => AgentRecord;
+/** Count one settled run into an agent's record (VOID and PENDING do not count; lied = BENT_LIED or FALSE_REPORT). */
+export declare function recordAdd(r: AgentRecord, t: number, seq: bigint): AgentRecord;
+export declare const RECORD_OK = 0;
+export declare const RECORD_SHORT = 1;
+export declare const RECORD_TAKEN = 2;
+export declare const RECORD_RECENT = 3;
+export declare const RECORD_RESULTS: readonly ["OK", "SHORT", "TAKEN", "RECENT"];
+/** What `require_record(min_runs, max_taken_bps, since_round)` answers for a record. */
+export declare function recordCheck(r: AgentRecord, minRuns: bigint, maxTakenBps: number, sinceRound: bigint): number;
+/** The runner fund's lamports above rent and its cap: they flow to the purses (`spill`). */
+export declare function fundSurplus(lamports: bigint, rent: bigint, cap: bigint): bigint;

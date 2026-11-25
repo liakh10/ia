@@ -7,6 +7,7 @@ export * from "./instructions.js";
 export * from "./merkle.js";
 export * from "./stats.js";
 export * from "./forecast.js";
+export * from "./leaves.js";
 export { IaClient } from "./client.js";
 export type { IaClientOptions } from "./client.js";
 export { Rpc, RpcError, memcmp } from "./rpc.js";
@@ -15,7 +16,7 @@ export { encodeBase58, decodeBase58, toAddress, toAddressBytes, isAddress } from
 export type { AddressLike } from "./base58.js";
 export { findProgramAddress, createProgramAddress, isOnCurve } from "./pda.js";
 export { sha256, toHex, fromHex, fromBase64, ed25519Verify, utf8, concat, u64le } from "./bytes.js";
-export { decodeAccount, encodeAccount, encodeAccountPartial, encodeInstruction } from "./borsh.js";
+export { decodeAccount, encodeAccount, encodeAccountPartial, encodeInstruction, encode as encodeType } from "./borsh.js";
 export type { Idl } from "./borsh.js";
 export { IA_IDL } from "./idl/ia.js";
 export const SDK_VERSION = "0.1.0";

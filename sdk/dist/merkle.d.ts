@@ -43,7 +43,7 @@ export declare function parseTranscript(jsonl: string): {
  * (leaf = sha256(0x00 ‖ run_root)).
  */
 export declare function docketRoot(runRoots: (Hex | Uint8Array)[]): Promise<Hex>;
-/** The 80 bytes the log key signs: "IA-STH01" ‖ program_id ‖ tree_size u64 LE ‖ root_hash. */
+/** The 80 bytes the log key signs (log/src/keys.ts): "IA-STH-1" ‖ program_id ‖ tree_size u64 LE ‖ root_hash. */
 export declare function treeHeadMessage(programId: AddressLike, treeSize: number, rootHash: Uint8Array | Hex, domain?: string): Uint8Array;
 export interface SignedTreeHead {
     treeSize: number;
@@ -51,11 +51,12 @@ export interface SignedTreeHead {
     signature: Hex;
     /** the log key, base58 */
     logKey: string;
+    programId?: string;
     slot?: number;
     timestamp?: number;
 }
 export declare function verifyTreeHead(sth: SignedTreeHead, programId: AddressLike, domain?: string): Promise<boolean>;
-/** The 88 bytes a witness signs over a head: "IA-WIT01" ‖ program_id ‖ tree_size ‖ root_hash ‖ timestamp u64 LE (POF CONTRACT §8). */
+/** The 88 bytes a witness signs over a head: "IA-WIT-1" ‖ program_id ‖ tree_size ‖ root_hash ‖ timestamp u64 LE (unix s). */
 export declare function cosignMessage(programId: AddressLike, treeSize: number, rootHash: Uint8Array | Hex, timestamp: number): Uint8Array;
 /**
  * Check one log entry: the audit path leads from the leaf to the head's root, and (when given) the head is signed by a key the reader

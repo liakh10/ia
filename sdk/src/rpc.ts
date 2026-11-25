@@ -26,6 +26,8 @@ export interface RpcLike {
   getTransactionLogs?(signature: string): Promise<string[] | null>;
   /** optional: one transaction's slot, block time, error and log lines (the indexer's input) */
   getTransaction?(signature: string): Promise<TxLogs | null>;
+  /** optional: a recent blockhash (to build a transaction) */
+  getLatestBlockhash?(): Promise<{ blockhash: string; lastValidBlockHeight: number }>;
 }
 
 export interface TxLogs {

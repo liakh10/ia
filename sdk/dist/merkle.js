@@ -182,16 +182,16 @@ export async function docketRoot(runRoots) {
     return toHex(await merkleRoot(await Promise.all(runRoots.map((r) => leafHash(h(r))))));
 }
 /* ---------- the IA log's signed tree heads (CONTRACT §8, the POF technique) ---------- */
-/** The 80 bytes the log key signs: "IA-STH01" ‖ program_id ‖ tree_size u64 LE ‖ root_hash. */
-export function treeHeadMessage(programId, treeSize, rootHash, domain = "IA-STH01") {
+/** The 80 bytes the log key signs (log/src/keys.ts): "IA-STH-1" ‖ program_id ‖ tree_size u64 LE ‖ root_hash. */
+export function treeHeadMessage(programId, treeSize, rootHash, domain = "IA-STH-1") {
     return concat(utf8(domain), toAddressBytes(programId), u64le(treeSize), h(rootHash));
 }
 export function verifyTreeHead(sth, programId, domain) {
     return ed25519Verify(toAddressBytes(sth.logKey), treeHeadMessage(programId, sth.treeSize, sth.rootHash, domain), fromHex(sth.signature)).catch(() => false);
 }
-/** The 88 bytes a witness signs over a head: "IA-WIT01" ‖ program_id ‖ tree_size ‖ root_hash ‖ timestamp u64 LE (POF CONTRACT §8). */
+/** The 88 bytes a witness signs over a head: "IA-WIT-1" ‖ program_id ‖ tree_size ‖ root_hash ‖ timestamp u64 LE (unix s). */
 export function cosignMessage(programId, treeSize, rootHash, timestamp) {
-    return concat(utf8("IA-WIT01"), toAddressBytes(programId), u64le(treeSize), h(rootHash), u64le(timestamp));
+    return concat(utf8("IA-WIT-1"), toAddressBytes(programId), u64le(treeSize), h(rootHash), u64le(timestamp));
 }
 /**
  * Check one log entry: the audit path leads from the leaf to the head's root, and (when given) the head is signed by a key the reader
