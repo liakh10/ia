@@ -5,3 +5,5 @@ target/
 *.log
 .DS_Store
 program/test/.run/
+.data/
+runner/test/.run/

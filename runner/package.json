@@ -1,0 +1,19 @@
+{
+  "name": "ia-runner",
+  "private": true,
+  "description": "Internal Affairs runner: the task generator (seed -> inbox), the sandbox harness (session keys, tools, acts), transcripts, the crank.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/unit.mjs",
+    "e2e": "zsh test/e2e.sh"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.31.1",
+    "@solana/web3.js": "1.98.4",
+    "bs58": "6.0.0"
+  },
+  "overrides": {
+    "uuid": "9.0.1",
+    "rpc-websockets": { "uuid": "9.0.1" }
+  }
+}
