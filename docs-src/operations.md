@@ -21,11 +21,17 @@ summary: Which service holds which key, which settings are secret and which are 
 
 The secrets live only where they are used:
 
-- `IA_LOG_KEY` (the log's secret keypair) and `IA_SEAL_KEY` are read by the plant registry and log routes only.
-- The read API, the MCP server and any reader pin the log's **public** key instead, in `IA_LOG_KEYS` (base58, comma separated). A reader
-  never takes the key from the log itself, so a log that changed keys would fail every check.
-- `CRON_SECRET` guards the scheduled routes below; `BLOB_READ_WRITE_TOKEN` is the storage token.
-- Public settings: `SOLANA_RPC`, `IA_PROGRAM`, `IA_LOG_URL`, `IA_REGISTRY_URL`.
+| setting | kind | read by |
+|---|---|---|
+| `IA_LOG_KEY` | secret: the log's keypair | the plant registry and log functions only |
+| `IA_SEAL_KEY` | secret: the at-rest encryption key | the plant registry and log functions only |
+| `CRON_SECRET` | secret | the two scheduled routes below |
+| `BLOB_READ_WRITE_TOKEN` | secret: the storage token | the registry, the log and the indexer |
+| `IA_LOG_KEYS` | public: the log's base58 public key(s) | the read API, the MCP server and any reader, which pin it and never take the key from the log itself |
+| `SOLANA_RPC` | public | every function |
+| `IA_PROGRAM` | public: the program id | the registry and log |
+| `IA_ANCHOR` | `1` from launch | the registry crank: anchor the log head on chain when it grew |
+| `IA_LOG_URL`, `IA_REGISTRY_URL` | public | the read API |
 
 No key is ever printed, committed or sent to a page.
 

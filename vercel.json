@@ -1,4 +1,5 @@
 {
+  "buildCommand": "cd registry && npm ci && npm run build:verify && cd .. && node site/build.mjs",
   "cleanUrls": true,
   "trailingSlash": false,
   "functions": {

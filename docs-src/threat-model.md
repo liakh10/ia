@@ -26,5 +26,6 @@ summary: Who could attack what, and what stops them. The internal audit's findin
 - A runner key holder with many sybil wallets can plant against its own runs; the cap bounds the take, the transcripts show the runs.
 - Rates are not production rates; see [Methodology](methodology.md#limits-stated).
 
-The internal audit (threat model, findings with severity, the fix and the test that proves it) is published with the
-[test reports](/reports).
+The plant registry, the transparency log and the replay kit have their own threat model, threat by threat with the test that proves
+each mitigation: [Threat model of the verifier](threat-model-verifier.md). The internal audit (findings with severity, the fix and
+the test that proves it) is published with the [test reports](/reports).

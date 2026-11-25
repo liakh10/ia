@@ -5,7 +5,8 @@ audit/
 lab/
 runner/
 adapters/
-replay/
+replay/*
+!replay/src/
 cli/
 bots/
 .data/

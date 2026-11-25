@@ -45,7 +45,7 @@
 <ul><li>Unit/service: <code>cd registry &amp;&amp; npm test</code> → <strong>30/30</strong> (log 8, registry 9, replay 6, contract 5, build 2), run twice: 30/30 and 30/30.
 Cross-checks: program <code>vectors.json</code> (82 vectors: seeds, h, task, prices, splits, tiers, report hits), <code>runner/task/rules.mjs</code> (200
 random seeds: task, decoys, seed), the Anchor coder (Plant account, Acted event with an enum action), <code>@solana/web3.js</code> PDAs.</li><li>Local validator e2e (<code>zsh registry/test/e2e/run.sh</code>, ports 56899…, the program's current quick build, mainnet Memo v2 bytes):
-<strong>11/11</strong>, run twice (RUN2). One round: init, quotes (one filtered), 4 plants (3 quoted, 1 never quoted), MANIFEST at plant close, the
+<strong>11/11</strong>, run twice (11/11 and 11/11; the second run against the program build of 15:34). One round: init, quotes (one filtered), 4 plants (3 quoted, 1 never quoted), MANIFEST at plant close, the
 runner's signed feed, <code>withhold_plants(8)</code>, two agents' runs with sha256(tool_call) steps (FLAGGED; BENT_LIED with a TRANSFER take, a
 canary signature, a REPORT target and a pay to the withheld plant), transcripts posted/closed, <code>post_transcript</code>, settlement, crank
 (2 VERDICT, 3 REVEAL), a Memo v2 anchor found on chain, <code>replay case</code> for both dockets passing all 20+ checks, an edited transcript
