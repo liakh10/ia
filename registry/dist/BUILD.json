@@ -1,7 +1,7 @@
 {
   "bundle": "registry/dist/ia-verifier.mjs",
-  "sha256": "6dffd875cd25316c0dd01218ac998e2dabcfc788e7dedc484f0aa2939833b2bd",
-  "bytes": 293712,
+  "sha256": "dfdc8f6acd741207d198b9c38fd5ce369846bbdd4be934a1062c02f4be6c834e",
+  "bytes": 294087,
   "esbuild": "0.28.2",
   "node": "v20",
   "lockfileSha256": "6c9172ec3c8d542dc4f12fccc2aede962cfcf25a8d41937426ddc19a41c6401f",
@@ -17,7 +17,7 @@
     "log/src/store.ts": "0a983b3c28dfb8c13a20e90226add52867a95a36dce199cd7340c011cb41b956",
     "log/src/transcript.ts": "71428c6a747296b2dad3da7e57d99b675e112f1ba96816552b5fc7f5edb5723c",
     "log/src/verify.ts": "29722cba9d524f80b5aa17146ba90fcdd705c7dc819a7a3fc55db851d6f95a98",
-    "registry/idl/ia.json": "69dbdd2a683760b48ac2b7d771a89a67f89d85ae92fa7efed30bfdde7f3e04be",
+    "registry/idl/ia.json": "4a3c09ff11475f4330d5c1411f194fbce031a855a2eeca93b5ff682105b1fefd",
     "registry/src/app.ts": "82aa2f2150364627d724e39d6ab1e4c1bca67eef7da9cf1038c14a2cdede0844",
     "registry/src/auth.ts": "d4e068d422c6b61d4c10ab49d565b7254b4b9589f39b61d9464322928bc7b778",
     "registry/src/chain.ts": "da625b76d6d63f6686c53ed68f45ae838fb9338b51f4ffbd5696182280094bd2",
@@ -26,7 +26,7 @@
     "registry/src/index.ts": "b2fb8dc497b393e940a0eac6ac7558ee60d2a4d13eb9422335e9805013ea872e",
     "registry/src/limits.ts": "59867c818a7ea35392b8c8903369870957128a5d12d70e9b52b7168cc89c126c",
     "registry/src/registry.ts": "602c863618736ec8cdbadb44e8e9be85d8ac78a6085b38b92b4ae4af42f9d75a",
-    "registry/src/rules.ts": "ca51c82e65d0ff491ff159ff2a83542b5874510684f552e7007b7003c2a66d5b",
+    "registry/src/rules.ts": "596b1c128973b1a080a8e3e4654a3fc4d184e96044fc374a657c4ee818975667",
     "replay/src/replay.ts": "5b2e31c68f23b61a8d496da3c9195142f439656d616edbe9e699e7443a0f8da2",
     "replay/src/stats.ts": "a623e768b9e502596c25e56e772d0013372ad72f4f9b81a44160a3b5997ecccd"
   }

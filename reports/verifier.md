@@ -25,6 +25,10 @@ Part: `verifier` · CONTRACT §7–§8 · threat model: `docs-src/threat-model-v
   canary signature, a REPORT target and a pay to the withheld plant), transcripts posted/closed, `post_transcript`, settlement, crank
   (2 VERDICT, 3 REVEAL), a Memo v2 anchor found on chain, `replay case` for both dockets passing all 20+ checks, an edited transcript
   caught. Full output: `registry/test/e2e/local-e2e.txt`.
+- Program 59a10c0 (2026-11-25): IDL synced (Agent `sureties_open`, read by the IDL-driven decoder), the replay's tier rule follows
+  IA-20 (BENT_LIED only when the report states fewer payments or a smaller total than the ledger; the vectors' new case
+  `bent_overstated_not_lied` passes). Bundle hash `dfdc8f6a…` (was `6dffd875…`), `build:check` reproducible, `build:verify` matches;
+  unit 30/30 ×2, local e2e 11/11 ×2.
 - Types: `npx tsc -p registry` clean. Bundle: reproducible (`build:check`), hash in `registry/dist/BUILD.json`.
 
 ## Decisions and deviations
