@@ -188,6 +188,21 @@ const plainLeaf = (l) => JSON.parse(JSON.stringify(l, (_, x) => (typeof x === "b
 /** Find log entries by kind (and seq/agent/idx): pages through the log, entries cached (they never change). */
 export async function findLogEntries(env, { kind, seq, agent, idx }, f = fetch) {
   const base = logBase(env);
+  // one record has a key in the log (CONTRACT §8 `?key=`): ask for it directly
+  const key = seq === undefined ? null
+    : kind === "manifest" || kind === "harness" ? `${kind}:${seq}`
+      : (kind === "transcript" || kind === "verdict") && agent !== undefined ? `${kind}:${seq}:${agent}`
+        : kind === "reveal" && idx !== undefined ? `reveal:${seq}:${idx}` : null;
+  if (key) {
+    try {
+      const e = await logFetch(base, `key=${encodeURIComponent(key)}`, f, env);
+      const d = sdk.decodeLeaf(sdk.fromHex(e.leaf));
+      return { treeSize: null, entries: [{ index: e.index, kind: d.kind, data: plainLeaf(d), proof: `/v1/log/proof/${e.index}` }] };
+    } catch (err) {
+      if (err instanceof HttpError && err.status === 404) return { treeSize: null, entries: [] };
+      throw err;
+    }
+  }
   const head = await logGet(base, "head", f, env);
   const out = [];
   for (let a = 0; a < head.treeSize; a += 256) {
@@ -219,21 +234,37 @@ export async function readReveal(env, seq, idx, f = fetch) {
   });
 }
 
-/** A run's published transcript (JSONL text) or null: IA_TRANSCRIPT_DIR (local) or IA_TRANSCRIPT_URL (`<base>/<seq>/<agent>/<run>.jsonl`). */
+/**
+ * A run's published transcript (JSONL text) or null: IA_TRANSCRIPT_DIR (local files `<seq>/<agent>/<run>.jsonl`), IA_TRANSCRIPT_URL
+ * (`<base>/<seq>/<agent>/<run>.jsonl`), else the log's `GET /api/log/transcript/:seq/:agent/:run` → {jsonl} (CONTRACT §8).
+ */
 export async function readTranscript(env, seq, agent, run, f = fetch) {
   if (env.IA_TRANSCRIPT_DIR) {
     const file = path.join(env.IA_TRANSCRIPT_DIR, String(seq), String(agent), `${run}.jsonl`);
     try { return fs.readFileSync(file, "utf8"); } catch { return null; }
   }
-  if (!env.IA_TRANSCRIPT_URL) return null;
+  const url = env.IA_TRANSCRIPT_URL ? `${env.IA_TRANSCRIPT_URL.replace(/\/$/, "")}/${seq}/${agent}/${run}.jsonl`
+    : env.IA_LOG_URL ? `${env.IA_LOG_URL.replace(/\/$/, "")}/transcript/${seq}/${agent}/${run}` : null;
+  if (!url) return null;
   return remember(`transcript:${seq}:${agent}:${run}`, 60_000, async () => {
     try {
-      const r = await f(`${env.IA_TRANSCRIPT_URL.replace(/\/$/, "")}/${seq}/${agent}/${run}.jsonl`, { headers: { accept: "application/x-ndjson, text/plain" } });
-      return r.ok ? await r.text() : null;
+      const r = await f(url, { headers: internalHeaders(env) });
+      if (!r.ok) return null;
+      const text = await r.text();
+      if (env.IA_TRANSCRIPT_URL) return text;
+      const j = JSON.parse(text);
+      return typeof j.jsonl === "string" ? j.jsonl : null;
     } catch {
       return null;
     }
   });
+}
+
+/** Forecast leaves from the log (the reproducible source of the board), as {wallet, seq, agent, call}. */
+export async function logForecasts(env, f = fetch) {
+  if (!env.IA_LOG_URL) return null;
+  const found = await findLogEntries(env, { kind: "forecast" }, f);
+  return found.entries.map((e) => ({ wallet: e.data.signer, seq: String(e.data.seq), agent: e.data.agent, call: e.data.call === 1 ? "BENT" : "CLEAN", log: e.index }));
 }
 
 /* ---------- forecasts (SPEC §4): one per wallet per docket, first one stands ---------- */

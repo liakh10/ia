@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import {
   sdk, HttpError, getClient, getIndex, getIndexer, remember, parseIntParam, parseSeq, verifiedHead, verifiedProof, findLogEntries,
-  readReveal, readTranscript, getForecasts, allow, internalHeaders,
+  readReveal, readTranscript, getForecasts, logForecasts, allow, logBase,
 } from "./_lib.js";
 import {
   integrityIndex, agentsView, roundJson, plantView, caseFile, caseList, investigators, forecastBoard, statusView, sol, plain,
@@ -221,8 +221,10 @@ export async function handleV1(req) {
 
     if (head === "forecasts" && rest.length === 1 && rest[0] === "board") {
       const ix = await getIndex(env);
-      const list = await getForecasts(env).all();
-      return json(200, forecastBoard(ix, list.map((x) => ({ ...x, seq: BigInt(x.seq) }))), cache(15, 90));
+      // the log's FORECAST leaves are the reproducible source; this server's own store fills in when no log is configured
+      const fromLog = await logForecasts(env, f).catch(() => null);
+      const list = fromLog ?? (await getForecasts(env).all());
+      return json(200, { source: fromLog ? "log" : "server", ...forecastBoard(ix, list.map((x) => ({ ...x, seq: BigInt(x.seq) }))) }, cache(15, 90));
     }
 
     if (head === "log") {
@@ -291,11 +293,12 @@ async function postForecast(req, env) {
   const rec = { wallet: b.wallet, seq: fc.seq.toString(), agent: fc.agent, call: fc.call, message: b.message, signature: b.signature, slot };
   const added = await getForecasts(env).add(rec);
   if (!added) throw new HttpError(409, "duplicate", "this wallet already called this docket; the first call stands");
-  // the verifier appends forecasts to the log (CONTRACT §8) so the board is reproducible: forward when configured
+  // the log appends forecasts (CONTRACT §8: POST /api/log/forecast {message, signer, signature hex}) so the board is reproducible
   let logged = null;
-  if (env.IA_FORECAST_SINK_URL) {
+  if (env.IA_LOG_URL) {
+    const sigHex = /^[0-9a-fA-F]{128}$/.test(b.signature) ? b.signature.toLowerCase() : sdk.toHex(sdk.decodeBase58(b.signature));
     try {
-      const res = await (req.fetch ?? fetch)(env.IA_FORECAST_SINK_URL, { method: "POST", headers: { ...internalHeaders(env), "content-type": "application/json" }, body: JSON.stringify(rec) });
+      const res = await (req.fetch ?? fetch)(`${logBase(env)}/forecast`, { method: "POST", headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify({ message: b.message, signer: b.wallet, signature: sigHex }) });
       logged = res.ok ? await res.json().catch(() => ({ ok: true })) : { ok: false, status: res.status };
     } catch {
       logged = { ok: false };
