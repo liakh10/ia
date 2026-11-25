@@ -69,10 +69,21 @@ export class Chain {
       }
     }
   }
+  /** A transaction's log lines by raw JSON-RPC (encoding "json", maxSupportedTransactionVersion 1): web3.js 1.98 cannot decode a
+   *  version-1 transaction, and only the logs are needed here. Null while the transaction is not yet visible. */
+  async txLogs(sig) {
+    const res = await fetch(this.conn.rpcEndpoint, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTransaction', params: [sig, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 1 }] }),
+    });
+    const j = await res.json();
+    if (j.error) throw Error('getTransaction: ' + (j.error.message || JSON.stringify(j.error)));
+    return j.result ? (j.result.meta?.logMessages || []) : null;
+  }
   async events(sig) {
     for (let i = 0; i < 40; i++) {
-      const t = await this.conn.getTransaction(sig, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
-      if (t) return [...this.parser.parseLogs(t.meta.logMessages || [])];
+      const logs = await this.txLogs(sig);
+      if (logs) return [...this.parser.parseLogs(logs)];
       await sleep(250);
     }
     return [];
