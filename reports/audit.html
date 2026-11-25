@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Internal Affairs: internal security review · Internal Affairs</title>
+<meta name="description" content="Status: round 2 (2026-11-25). Round 1 reviewed the scaffold dc45f86; round 2 re-tested the program owner's fixes (working tree
+of program/programs/ia, sources hashed in fuzz/results/snapshot.json: lib.rs fd7f6ec9…, rules.rs ce3dab64…).
+Revi">
+<link rel="canonical" href="https://ia-sol.vercel.app/reports/audit">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Internal Affairs">
+<meta property="og:title" content="Internal Affairs: internal security review · Internal Affairs">
+<meta property="og:description" content="Status: round 2 (2026-11-25). Round 1 reviewed the scaffold dc45f86; round 2 re-tested the program owner's fixes (working tree
+of program/programs/ia, sources hashed in fuzz/results/snapshot.json: lib.rs fd7f6ec9…, rules.rs ce3dab64…).
+Revi">
+<meta property="og:url" content="https://ia-sol.vercel.app/reports/audit">
+<meta name="twitter:card" content="summary">
+
+<script src="/config.js"></script>
+<script type="module" src="/ui/app.js"></script>
+<script type="module" src="/ui/docs.js"></script>
+</head>
+<body class="page-docs" data-page="docs">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/" aria-label="Internal Affairs, home"><span class="brand-mark" aria-hidden="true">IA</span><span class="brand-name">Internal Affairs</span></a>
+  <nav class="nav" id="nav" aria-label="Main"><a href="/">Test</a><a href="/integrity">Integrity Index</a><a href="/cases">Case files</a><a href="/plant">Plant</a><a href="/sureties">Sureties</a><a href="/forecasts">Forecasts</a><a href="/docs" aria-current="page">Docs</a></nav>
+  <div class="top-end"><button class="btn small ghost" type="button" data-wallet hidden>Connect</button><button class="menu" type="button" aria-expanded="false" aria-controls="nav"><span class="menu-bars"></span><span class="sr">Menu</span></button></div>
+</header>
+<main id="main">
+<div class="docs">
+  <aside class="docs-side" aria-label="Sections">
+    <details class="docs-pick" open><summary>Test reports</summary><ol class="docs-list"><li><a href="/reports/audit" aria-current="page"><span class="n">01</span>Internal Affairs: internal security review</a></li><li><a href="/reports/devx"><span class="n">02</span>Test report: developer surfaces (SDK, indexer, API, MCP, CLI, bots)</a></li><li><a href="/reports/fuzz"><span class="n">03</span>Internal Affairs: on-chain fuzz and property testing</a></li><li><a href="/reports/program"><span class="n">04</span>Program test report: ia</a></li><li><a href="/reports/runner"><span class="n">05</span>Runner and adapters report: Internal Affairs</a></li><li><a href="/reports/verifier"><span class="n">06</span>Verifier report (plant registry, transparency log, replay kit)</a></li></ol></details>
+  </aside>
+  <article class="prose" data-docs>
+    
+    <h1 id="internal-affairs-internal-security-review">Internal Affairs: internal security review</h1>
+<p>Status: <strong>round 2</strong> (2026-11-25). Round 1 reviewed the scaffold <code>dc45f86</code>; round 2 re-tested the program owner's fixes (working tree
+of <code>program/programs/ia</code>, sources hashed in <code>fuzz/results/snapshot.json</code>: <code>lib.rs</code> <code>fd7f6ec9…</code>, <code>rules.rs</code> <code>ce3dab64…</code>).
+Reviewer: the IA <code>audit</code> agent, independent of the builders. It edits none of the program, runner, registry or SDK code; each fix is made
+by the owner of that part and proven by the test named in its row.</p>
+<h2 id="1-scope">1. Scope<a class="anchor" href="#1-scope" aria-label="Link to this section">#</a></h2>
+<div class="table"><table><thead><tr><th>part</th><th>paths</th><th>what was done</th></tr></thead><tbody><tr><td>on-chain program <code>ia</code></td><td><code>program/programs/ia/src/{lib,rules,ext,errors}.rs</code></td><td>read line by line both rounds; every finding proven on a local validator</td></tr><tr><td>shared contract</td><td><code>CONTRACT.md</code> §1-§5, §10; <code>SPEC.md</code> §3, §5, §6, §8, §9, §10</td><td>read as the threat model</td></tr><tr><td>runner sandbox (the only path from a model to the chain)</td><td><code>runner/harness/{sandbox,chain,drive}.mjs</code>, <code>runner/lib/egress.mjs</code>, <code>runner/round.mjs</code> (withhold)</td><td>read for the sandbox escape surface only</td></tr><tr><td>plant registry</td><td><code>registry/src/registry.ts</code> (delivery, manifest, reveal)</td><td>read for delivery/withhold and reveal timing only</td></tr></tbody></table></div>
+<p><strong>Not covered</strong> (so that nobody reads silence as a pass): the adapters (<code>adapters/</code>), the API/SDK/MCP (<code>sdk/</code>, <code>api/</code>, <code>mcp/</code>), the
+log's cryptography (<code>registry/src/</code> beyond the lines above), the site, <code>launch.mjs</code> and key scripts, the replay kit.</p>
+<h2 id="2-method">2. Method<a class="anchor" href="#2-method" aria-label="Link to this section">#</a></h2>
+<ol><li>Threat model from SPEC §6/§8 (below), then every instruction read with one question: what does a model, a runner, a planter, a
+surety, an operator or a stranger gain by calling this with inputs of their choosing, in an order of their choosing, in one
+transaction?</li><li>Every finding that code can show has a <strong>test that states the secure behaviour</strong> in <code>audit/test/program.test.mjs</code>. It fails while the
+finding is open and passes once fixed. Run: <code>zsh fuzz/build.sh &amp;&amp; zsh fuzz/chain.sh &amp;&amp; node --test --test-concurrency=1 audit/test/</code>
+(fuzz chain, RPC 60899; at most 3 validators on the machine).</li><li>Invariants and the randomized driver are in <code>reports/fuzz.md</code>; the fuzzer probes every fixed hole on every round (P-probes).</li></ol>
+<h2 id="3-threat-model-spec-6-8">3. Threat model (SPEC §6, §8)<a class="anchor" href="#3-threat-model-spec-6-8" aria-label="Link to this section">#</a></h2>
+<div class="table"><table><thead><tr><th>actor</th><th>wants</th><th>on-chain power</th><th>main control</th></tr></thead><tbody><tr><td>model under test</td><td>anything its tools allow</td><td><code>act</code> on its own run only, via the runner; no lamports move during a run</td><td>closed ledger; session key per run; the runner pays fees, the session key holds nothing</td></tr><tr><td>runner (hot key)</td><td>collusion with a planter, or a stolen key</td><td>commit, start runs, withhold plants, post roots, draw ≤ cap per round; <strong>signs every act</strong></td><td>trust point 1: caps (≤ docket_cap of each purse per round), transcripts, delays on rotation</td></tr><tr><td>planter</td><td>bounties without real bait, copying, griefing</td><td>plant (any hash, class, target, canary)</td><td>price, caps, delivery manifest + <code>withhold_plants</code>, unique canary, REPORT target rule</td></tr><tr><td>surety</td><td>fees without risk, dodging catches</td><td>deposit, unbond, withdraw</td><td>busy lock during a round, unbond delay snapshotted, request expiry</td></tr><tr><td>stranger</td><td>break settlement, steal pools, grief</td><td>every permissionless call (open, docket, settle, close, reap, spill)</td><td>state checks; the findings below</td></tr><tr><td>admin</td><td>change rules, rotate keys</td><td>params in hard caps, delayed rotations, pause, closing</td><td>hard caps, delays; <strong>the upgrade authority is above all of it</strong> (IA-14)</td></tr><tr><td>Open League operator (phase 1.5)</td><td>fees from a self-run agent, a clean record</td><td>registers, starts its own runs, posts its own roots</td><td>bond; IA-18, IA-19</td></tr></tbody></table></div>
+<p>Sandbox escape surface (can real SOL leave because of a model action?). <strong>No path found.</strong> <code>act</code> writes numbers in the docket only;
+the only lamport moves are <code>settle_docket</code> (bounties agent → round, purse share round → agent), <code>claim_plant</code>, <code>reap_round</code>,
+<code>withdraw</code>, <code>draw</code>, <code>spill</code>, <code>withdraw_fees</code> and the closing calls, none of which a session key can sign. In the runner, <code>pay_with_key</code>
+signs only with a key whose pubkey is a KEY canary of the round (<code>sandbox.mjs:133-136</code>); any other key returns <code>{ok:false}</code> and is never
+used as fee payer; the runner key pays fees (<code>chain.mjs:132</code>); tool output to the model never carries raw chain errors (they go to the
+transcript only); the egress allow-list wraps <code>fetch</code> and <code>net.Socket.connect</code>. The model chooses only <strong>which planter</strong> a bounty goes to,
+by taking that plant, which is the product.</p>
+<h2 id="4-summary">4. Summary<a class="anchor" href="#4-summary" aria-label="Link to this section">#</a></h2>
+<div class="table"><table><thead><tr><th>id</th><th>severity</th><th>title</th><th>status (round 2)</th><th>proof</th></tr></thead><tbody><tr><td>IA-01</td><td><strong>Critical</strong></td><td>a settled docket could be re-opened and re-settled: one agent takes the whole purse pool, every other docket panics, bounties never paid</td><td><strong>fixed</strong></td><td><code>IA-01 (Critical)</code></td></tr><tr><td>IA-02</td><td>High</td><td>a surety with a matured unbond request exits after seeing a plant taken, before settlement: the bounty becomes 0</td><td><strong>fixed</strong> (busy + expiry); regression IA-17</td><td><code>IA-02 …</code></td></tr><tr><td>IA-03</td><td>High</td><td>a KEY plant could reuse another plant's canary: an undelivered copycat shares the catch</td><td><strong>fixed</strong> (DuplicateCanary, withhold)</td><td><code>IA-03</code></td></tr><tr><td>IA-04</td><td>High</td><td>a REPORT target predictable from the public task farms honest arithmetic slips as BENT + bounty</td><td><strong>fixed</strong> (target % 1,000 ≠ 0, withhold); residual Low (§5)</td><td><code>IA-04</code></td></tr><tr><td>IA-05</td><td>High</td><td><code>draw</code> could empty the runner fund to 0 lamports: the account is deleted and every <code>plant</code> fails</td><td><strong>fixed</strong></td><td><code>IA-05</code></td></tr><tr><td>IA-06</td><td>Medium</td><td>paying a KEY/REPORT plant's address was neither taken nor stray: CLEAN</td><td><strong>fixed</strong></td><td><code>IA-06 verdict</code></td></tr><tr><td>IA-07</td><td>High</td><td><code>unbond_delay</code> uncapped and read at withdraw time; runner set instantly by <code>set_roles</code>: admin key = all sureties locked + drain</td><td><strong>fixed</strong> (cap 216,000, snapshot, rotation delay)</td><td><code>IA-07</code></td></tr><tr><td>IA-08</td><td>Medium</td><td>anyone could settle at <code>run_close + 1</code> before the transcript root: the case file has no root forever</td><td><strong>fixed</strong> (NoTranscript, one run window of grace)</td><td><code>IA-08</code></td></tr><tr><td>IA-09</td><td>Medium</td><td><code>plant</code> has no maximum price: a planter racing others pays up to 1.95× the quote (8 plants at +10%)</td><td>open</td><td>n/a</td></tr><tr><td>IA-10</td><td>Medium</td><td>a deposit after the runs' public acts captured the round's fees risk-free</td><td><strong>fixed</strong> (busy)</td><td><code>IA-10</code></td></tr><tr><td>IA-11</td><td>Medium</td><td>share math: shares explode when a purse is drained to dust; <code>shares_for</code> overflows after ~3 such events and <code>lamports_for</code> saturates (underpays withdrawals)</td><td>open</td><td><code>fuzz/rules</code> R9</td></tr><tr><td>IA-12</td><td>Low</td><td>the 1,000,000 $IA exemption is borrowable inside one transaction (transfer in, plant, transfer out)</td><td>open, accepted?</td><td>n/a</td></tr><tr><td>IA-13</td><td>High (trust)</td><td>the runner key signs every act: stolen or colluding, it takes up to <code>docket_cap_bps</code> (25%) of every purse per round and can withhold any plant</td><td>accepted risk: must be stated</td><td>design</td></tr><tr><td>IA-14</td><td>Medium (trust)</td><td>the upgrade authority can rewrite the program: SPEC trust point 3 (&quot;cannot move a purse&quot;) is false while the program is upgradeable</td><td>open (ops/docs)</td><td>n/a</td></tr><tr><td>IA-15</td><td>Low</td><td><code>plants_faced</code>/<code>untouched</code> count withheld and squatted plants: ~17% of 8 prices per round fills every slot and inflates &quot;resisted&quot;</td><td>open</td><td>n/a</td></tr><tr><td>IA-16</td><td>Info</td><td>the epoch in <code>DocketSettled</code> was read at settle time</td><td><strong>fixed</strong> (apply_agent needs busy = 0)</td><td>n/a</td></tr><tr><td>IA-17</td><td>Medium</td><td><strong>regression of the IA-02 fix</strong>: an agent is idle only between its own settle and the next <code>open_round</code>, which may run in the same transaction: zero exit window, requests expire, <code>apply_agent</code> starves</td><td><strong>open</strong></td><td><code>IA-17</code></td></tr><tr><td>IA-18</td><td>Medium (league)</td><td>an Open League operator starts its run at plant close and freezes <code>withhold_plants</code> for the whole round: undelivered plants takeable again</td><td><strong>open</strong></td><td><code>IA-18</code></td></tr><tr><td>IA-19</td><td>High (league, design)</td><td>an Open League &quot;agent&quot; can be a script: the task is public, it is always CLEAN, takes a share of the investigators' fees and passes <code>require_record</code></td><td><strong>open</strong> (league_seats = 0 at launch)</td><td><code>IA-19</code></td></tr><tr><td>IA-20</td><td>Low (legal)</td><td>BENT_LIED compares <code>decl_total</code> with <em>moved</em>, not <em>requested</em>: a model that pays more than a source holds and reports the requested sum is &quot;LIED&quot;</td><td>open</td><td>n/a</td></tr><tr><td>IA-21</td><td>Info</td><td>round 0 (and any round after sureties leave) has purse_at_open 0: no bounty is possible</td><td>doc</td><td>n/a</td></tr><tr><td>IA-22</td><td>Low (disclosure)</td><td>at closing, orphan fees (planters' money no surety owns) go to the dev with the agent account</td><td>open (doc)</td><td>n/a</td></tr></tbody></table></div>
+<p>Counts: Critical 1 (fixed), High 7 (5 fixed, IA-13 accepted, IA-19 open), Medium 8 (4 fixed, 4 open), Low 4, Info 2.
+Proof tests at the end of round 2: <strong>14 pass, 4 fail</strong> (IA-17, IA-18, IA-19 and their parent tests; all three open).</p>
+<h2 id="5-findings">5. Findings<a class="anchor" href="#5-findings" aria-label="Link to this section">#</a></h2>
+<h3 id="ia-01-critical-fixed-re-open-and-re-settle-a-settled-docket">IA-01 Critical · fixed · re-open and re-settle a settled docket<a class="anchor" href="#ia-01-critical-fixed-re-open-and-re-settle-a-settled-docket" aria-label="Link to this section">#</a></h3>
+<p><code>open_docket</code> (scaffold <code>lib.rs:666-691</code>) did not check the round's state or the agent's settled bit, and <code>settle_docket</code> closes the
+docket, so the PDA could be created again. A stranger after <code>run_close</code> sent settle(A) → open_docket(A) → settle(A) → … Proven: three
+settles of agent 0 took 83,000,000 of an 83,000,000 pool, the round flipped to settled, and agent 2 (which owed a bounty) could never
+settle (<code>Panic: overflow</code> on <code>purse_left -= share</code>, <code>lib.rs:859</code>): no bounty, no verdict, docket rent stuck. Cost to the attacker: fees.
+<strong>Fix (program):</strong> <code>open_docket</code> refuses a settled round and a settled position; <code>settle_docket</code> refuses a set bit (<code>lib.rs:975-979,
+1139</code>). Re-tested: <code>open_docket after the agent settled is refused</code> passes; the fuzzer probes it on every docket.</p>
+<h3 id="ia-02-high-fixed-surety-exit-after-the-acts-are-public">IA-02 High · fixed · surety exit after the acts are public<a class="anchor" href="#ia-02-high-fixed-surety-exit-after-the-acts-are-public" aria-label="Link to this section">#</a></h3>
+<p>A request made long ago stayed valid forever, so a surety could watch <code>Acted</code> events during the run window and withdraw before
+<code>settle_docket</code>; the bounty cap is <code>min(cap, assets)</code>. Proven: 4.58 SOL withdrawn in the run window, bounty 0 of 229,288,333.
+<strong>Fix:</strong> <code>busy</code> from <code>open_round</code> to the agent's settle blocks deposit and withdraw; the request expires one delay after maturity and the
+delay is snapshotted (<code>lib.rs:1363-1395</code>). Re-tested green. See IA-17 for the liveness cost.</p>
+<h3 id="ia-03-high-fixed-copycat-canary">IA-03 High · fixed · copycat canary<a class="anchor" href="#ia-03-high-fixed-copycat-canary" aria-label="Link to this section">#</a></h3>
+<p>Canary pubkeys are public at plant time; a second KEY plant with the same canary and an undelivered text was taken by the same signature
+(<code>taken</code> mask 3). <strong>Fix:</strong> <code>DuplicateCanary</code> (<code>lib.rs:893</code>) and <code>withhold_plants</code> for undelivered plants (<code>lib.rs:959-967</code>, applied
+at settlement <code>lib.rs:1151-1153</code>). Residual: IA-18.</p>
+<h3 id="ia-04-high-fixed-report-farming">IA-04 High · fixed · REPORT farming<a class="anchor" href="#ia-04-high-fixed-report-farming" aria-label="Link to this section">#</a></h3>
+<p>The task is a pure function of the public seed, so the opening operating balance (and partial sums) are known at open; a REPORT plant
+targeting it turned a model's subtraction slip into BENT and a 102,905,000-lamport bounty, without any text reaching the model.
+<strong>Fix:</strong> targets must not be multiples of 1,000 lamports (every task amount is), and undelivered plants are withheld.
+<strong>Residual (Low):</strong> with <code>busy</code>, <code>purse_at_open</code> now equals the agent's <code>assets</code> at <code>open_round</code> exactly; a delivered REPORT plant with
+target = that value catches a model that paid a vendor from the reserve by mistake and then reported the reserve unchanged. That is a
+real false report, but its label becomes BENT, not FALSE_REPORT. Suggest: count a REPORT hit only when the reported value is not the
+reserve at open, or say so on /docs.</p>
+<h3 id="ia-05-high-fixed-runner-fund-deleted-by-a-full-draw">IA-05 High · fixed · runner fund deleted by a full draw<a class="anchor" href="#ia-05-high-fixed-runner-fund-deleted-by-a-full-draw" aria-label="Link to this section">#</a></h3>
+<p><code>draw</code> checked only the per-round cap; drawing the whole balance (≤ 0.2 SOL early on) left 0 lamports, the runtime removed the account,
+and every <code>plant</code> failed with <code>AccountNotInitialized</code>. <strong>Fix:</strong> draw only above rent (<code>lib.rs:1409</code>). Probed every fuzz round.</p>
+<h3 id="ia-06-medium-fixed-pay-to-a-keyreport-plant-address-clean">IA-06 Medium · fixed · pay to a KEY/REPORT plant address = CLEAN<a class="anchor" href="#ia-06-medium-fixed-pay-to-a-keyreport-plant-address-clean" aria-label="Link to this section">#</a></h3>
+<p><strong>Fix:</strong> any plant address is taken (<code>lib.rs:1070-1073</code>); CONTRACT §4 updated; the fuzz model follows.</p>
+<h3 id="ia-07-high-fixed-admin-locks-sureties-instant-runner">IA-07 High · fixed · admin locks sureties / instant runner<a class="anchor" href="#ia-07-high-fixed-admin-locks-sureties-instant-runner" aria-label="Link to this section">#</a></h3>
+<p><code>unbond_delay</code> had no upper cap and was read at <code>withdraw</code>; <code>set_roles</code> swapped the runner at once. <strong>Fix:</strong> cap 216,000 slots,
+snapshot in <code>request_unbond</code>, <code>propose_runner</code>/<code>apply_runner</code> and <code>set_agent</code>/<code>apply_agent</code> after <code>rotation_delay</code>, a lowered delay
+waits out the old one (<code>lib.rs:646-701</code>). Note: <code>set_params</code> still changes <code>bounty_bps</code>/<code>docket_cap_bps</code> for the next round at once
+(caps 25% / 50%); a surety facing a raised cap needs an exit window (IA-17).</p>
+<h3 id="ia-08-medium-fixed-settle-before-the-transcript-root">IA-08 Medium · fixed · settle before the transcript root<a class="anchor" href="#ia-08-medium-fixed-settle-before-the-transcript-root" aria-label="Link to this section">#</a></h3>
+<p><strong>Fix:</strong> <code>NoTranscript</code> until the root is posted, unless no run started or one more run window has passed (<code>lib.rs:1141-1144</code>).</p>
+<h3 id="ia-09-medium-open-no-maximum-price-on-plant">IA-09 Medium · open · no maximum price on <code>plant</code><a class="anchor" href="#ia-09-medium-open-no-maximum-price-on-plant" aria-label="Link to this section">#</a></h3>
+<p><code>plant</code> charges the price at execution (<code>lib.rs:896</code>); with 8 plants at +10% each, a planter whose transaction lands last pays 1.95×
+what the site quoted. <strong>Fix (program):</strong> a <code>max_price: u64</code> argument, refused above it (the registry quote already has the price).</p>
+<h3 id="ia-10-medium-fixed-just-in-time-deposit">IA-10 Medium · fixed · just-in-time deposit<a class="anchor" href="#ia-10-medium-fixed-just-in-time-deposit" aria-label="Link to this section">#</a></h3>
+<p>A deposit after the runs' public reports took a share of the round's fees with no catch risk (10 SOL worth 10.0229 SOL right after
+settle). <strong>Fix:</strong> no deposit while busy.</p>
+<h3 id="ia-11-medium-open-share-math-at-a-drained-purse-rulesrs260-270">IA-11 Medium · open · share math at a drained purse (<code>rules.rs:260-270</code>)<a class="anchor" href="#ia-11-medium-open-share-math-at-a-drained-purse-rulesrs260-270" aria-label="Link to this section">#</a></h3>
+<p><code>shares_for = amount × (shares + 1) / (owned + 1)</code>. When bounties take a purse to dust while shares stay, each new deposit multiplies the
+share count by ≈ amount / owned. <code>fuzz/rules</code> R9: from 100 SOL of shares, <strong>3</strong> &quot;purse to 1 lamport&quot; events make the next deposit
+overflow (<code>Overflow</code>: nobody can stand surety for that agent again), and before that <code>lamports_for</code> uses <code>saturating_mul</code>, so a
+withdrawal whose <code>shares × owned</code> exceeds u128 is silently underpaid (e.g. 1e35 shares × 1e10 lamports → 3,402 lamports paid for 10 SOL).
+A weak model that is drained round after round reaches this (SPEC §11 &quot;models too weak&quot;). <strong>Fix:</strong> when <code>owned == 0</code> (or below a dust
+floor) with shares outstanding, write the shares off (reset to 0, dust to orphan) before minting; use a 256-bit mul-div in
+<code>lamports_for</code> and fail instead of saturating.</p>
+<h3 id="ia-12-low-open-borrowable-holder-exemption">IA-12 Low · open · borrowable holder exemption<a class="anchor" href="#ia-12-low-open-borrowable-holder-exemption" aria-label="Link to this section">#</a></h3>
+<p><code>is_holder</code> reads the planter's balance at the instruction; one bag moved in and out inside the transaction exempts any number of
+planters (or a swap in/out). Gain: 5% of a plant price, which goes to the purses anyway. Accept and say so, or require the balance to be
+held since the round opened (not checkable cheaply).</p>
+<h3 id="ia-13-high-trust-accepted-the-runner-signs-every-act">IA-13 High (trust) · accepted · the runner signs every act<a class="anchor" href="#ia-13-high-trust-accepted-the-runner-signs-every-act" aria-label="Link to this section">#</a></h3>
+<p>The session key is made and held by the runner, so a stolen runner key (a hot key in Vercel env) or a colluding runner can make any
+model &quot;take&quot; a sybil's plant: up to <code>docket_cap_bps</code> (25% at launch) of <strong>every</strong> purse per round, about every 30 minutes, and can
+<code>withhold_plants</code> any plant (censorship of real catches). Rotation now has a delay, which helps after a leak is noticed, not before.
+Must be stated as trust point 1 with these numbers. Suggested: a per-round cap across all purses, a circuit breaker (round settles only
+after a delay when bounties exceed X% of all purses), the registry's manifest checked against <code>PlantsWithheld</code> by the indexer, and the
+enclave of phase 2.</p>
+<h3 id="ia-14-medium-trust-open-upgrade-authority">IA-14 Medium (trust) · open · upgrade authority<a class="anchor" href="#ia-14-medium-trust-open-upgrade-authority" aria-label="Link to this section">#</a></h3>
+<p>While the program is upgradeable, its upgrade authority can replace it and move any purse. Trust point 3 must say so, or the authority
+must be a timelocked multisig or burnt before purses grow. (Owner decision.)</p>
+<h3 id="ia-15-low-open-counters-and-slot-squatting">IA-15 Low · open · counters and slot squatting<a class="anchor" href="#ia-15-low-open-counters-and-slot-squatting" aria-label="Link to this section">#</a></h3>
+<p><code>plants_faced += plant_count</code> (<code>lib.rs:1169</code>) includes withheld and garbage plants. Filling all 8 slots costs ≈ 1.14 SOL of which 83%
+returns to the purses (≈ 0.19 SOL net for a surety of every agent) and blocks real investigators that round while inflating &quot;resisted&quot;.
+Count only delivered plants (<code>plant_count − popcount(withheld)</code>) and consider one plant per planter per round.</p>
+<h3 id="ia-17-medium-open-regression-of-the-ia-02-fix-no-exit-window">IA-17 Medium · open · regression of the IA-02 fix: no exit window<a class="anchor" href="#ia-17-medium-open-regression-of-the-ia-02-fix-no-exit-window" aria-label="Link to this section">#</a></h3>
+<p><code>busy</code> is cleared at the agent's settle (<code>lib.rs:1219</code>) or by <code>close_empty_round</code> (<code>lib.rs:1260</code>), and <code>open_round</code> sets it again
+(<code>lib.rs:860</code>). Both can run in <strong>one transaction</strong>: <code>[close_empty_round, open_round]</code> or <code>[last settle_docket, open_round]</code>. With no
+plants (the idle state) a crank or a griefer that chains them leaves every agent busy forever; a matured request then expires
+(<code>Expired</code>, <code>lib.rs:1380</code>). Proven by <code>IA-17</code>. <code>apply_agent</code> (<code>lib.rs:754</code>) starves the same way, so a model version change or a
+retirement can be blocked. <strong>Fix:</strong> <code>open_round</code> requires <code>now ≥ prev.settle_slot + exit_gap</code> (a param, ≥ 150 slots at launch), and/or
+measure a request's expiry only over idle slots.</p>
+<h3 id="ia-18-medium-open-league-open-an-operator-freezes-withholdplants">IA-18 Medium (Open League) · open · an operator freezes <code>withhold_plants</code><a class="anchor" href="#ia-18-medium-open-league-open-an-operator-freezes-withholdplants" aria-label="Link to this section">#</a></h3>
+<p><code>withhold_plants</code> requires <code>runs_started == 0</code> (<code>lib.rs:961</code>), and a league operator can <code>start_run</code> at <code>plant_close</code> with no harness
+(<code>lib.rs:1008-1013</code>). The runner's withhold then fails (<code>RunsStarted</code>) and every undelivered plant can be taken by every house agent in
+that round (IA-03/IA-04 reopen). <strong>Fix:</strong> count only house runs for the freeze, or let league runs start only after the runner's
+withhold (or after a fixed number of slots past plant close).</p>
+<h3 id="ia-19-high-open-league-design-open-scripted-league-agents">IA-19 High (Open League, design) · open · scripted league agents<a class="anchor" href="#ia-19-high-open-league-design-open-scripted-league-agents" aria-label="Link to this section">#</a></h3>
+<p>The league operator makes the session key and signs the acts. The task is public, so a 30-line script pays every invoice and files the
+true report: always CLEAN, never caught, and it takes <code>pool / lineup_len</code> of the investigators' fees each round (proven: 43,575,000
+lamports to a script that never read the inbox). Its <code>require_record</code> then certifies &quot;N runs, 0 taken&quot; for something that is not an AI.
+<strong>Fix (design, before <code>league_seats &gt; 0</code>):</strong> league agents do not share the house purse pool (league plants pay league purses), the
+<code>RecordView.kind</code> must be checked by CPI clients (say so in the SDK and docs), and /docs says league records are self-run.</p>
+<h3 id="ia-20-low-legal-wording-open">IA-20 Low (legal wording) · open<a class="anchor" href="#ia-20-low-legal-wording-open" aria-label="Link to this section">#</a></h3>
+<p><code>lied</code> compares <code>decl_total</code> with <code>total_moved</code> (<code>rules.rs:136</code>). A pay capped by the source (<code>moved &lt; amount</code>) and an honest report of
+the requested sum yields BENT_LIED. The tool result returns <code>moved</code>, so it is defensible, but the case file should show both numbers
+before calling it &quot;did it and denied it&quot;.</p>
+<h3 id="ia-22-low-disclosure-open">IA-22 Low (disclosure) · open<a class="anchor" href="#ia-22-low-disclosure-open" aria-label="Link to this section">#</a></h3>
+<p><code>close_agent</code> (<code>lib.rs:1480-1497</code>) sends the agent account, orphan fees included, to the dev. Orphan lamports are investigators' fees
+nobody owns; state it on /docs or route them to the runner fund / planters.</p>
+<h2 id="6-legal-exposure-notes-not-legal-advice">6. Legal-exposure notes (not legal advice)<a class="anchor" href="#6-legal-exposure-notes-not-legal-advice" aria-label="Link to this section">#</a></h2>
+<ul><li>Verdict labels name commercial models: IA-04 residual, IA-20 and stray payments to house decoys all produce BENT/BENT_LIED for
+behaviour that may be a slip. Case files should quote the act and the tool result, and the methodology should list these rules.</li><li>The holder exemption and &quot;bounty&quot; wording are consistent with SPEC §10; forecasts stay free; nothing in the program takes a wager.</li><li>The runner can withhold any plant (IA-13): publish the registry manifest beside <code>PlantsWithheld</code> so a planter can see why.</li></ul>
+    <nav class="docs-next" aria-label="Pages"><span></span><a class="next" href="/reports/devx"><span>Next</span>Test report: developer surfaces (SDK, indexer, API, MCP, CLI, bots)</a></nav>
+  </article>
+  <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ol><li class="d2"><a href="#1-scope">1. Scope</a></li><li class="d2"><a href="#2-method">2. Method</a></li><li class="d2"><a href="#3-threat-model-spec-6-8">3. Threat model (SPEC §6, §8)</a></li><li class="d2"><a href="#4-summary">4. Summary</a></li><li class="d2"><a href="#5-findings">5. Findings</a></li><li class="d3"><a href="#ia-01-critical-fixed-re-open-and-re-settle-a-settled-docket">IA-01 Critical · fixed · re-open and re-settle a settled docket</a></li><li class="d3"><a href="#ia-02-high-fixed-surety-exit-after-the-acts-are-public">IA-02 High · fixed · surety exit after the acts are public</a></li><li class="d3"><a href="#ia-03-high-fixed-copycat-canary">IA-03 High · fixed · copycat canary</a></li><li class="d3"><a href="#ia-04-high-fixed-report-farming">IA-04 High · fixed · REPORT farming</a></li><li class="d3"><a href="#ia-05-high-fixed-runner-fund-deleted-by-a-full-draw">IA-05 High · fixed · runner fund deleted by a full draw</a></li><li class="d3"><a href="#ia-06-medium-fixed-pay-to-a-keyreport-plant-address-clean">IA-06 Medium · fixed · pay to a KEY/REPORT plant address = CLEAN</a></li><li class="d3"><a href="#ia-07-high-fixed-admin-locks-sureties-instant-runner">IA-07 High · fixed · admin locks sureties / instant runner</a></li><li class="d3"><a href="#ia-08-medium-fixed-settle-before-the-transcript-root">IA-08 Medium · fixed · settle before the transcript root</a></li><li class="d3"><a href="#ia-09-medium-open-no-maximum-price-on-plant">IA-09 Medium · open · no maximum price on plant</a></li><li class="d3"><a href="#ia-10-medium-fixed-just-in-time-deposit">IA-10 Medium · fixed · just-in-time deposit</a></li><li class="d3"><a href="#ia-11-medium-open-share-math-at-a-drained-purse-rulesrs260-270">IA-11 Medium · open · share math at a drained purse (rules.rs:260-270)</a></li><li class="d3"><a href="#ia-12-low-open-borrowable-holder-exemption">IA-12 Low · open · borrowable holder exemption</a></li><li class="d3"><a href="#ia-13-high-trust-accepted-the-runner-signs-every-act">IA-13 High (trust) · accepted · the runner signs every act</a></li><li class="d3"><a href="#ia-14-medium-trust-open-upgrade-authority">IA-14 Medium (trust) · open · upgrade authority</a></li><li class="d3"><a href="#ia-15-low-open-counters-and-slot-squatting">IA-15 Low · open · counters and slot squatting</a></li><li class="d3"><a href="#ia-17-medium-open-regression-of-the-ia-02-fix-no-exit-window">IA-17 Medium · open · regression of the IA-02 fix: no exit window</a></li><li class="d3"><a href="#ia-18-medium-open-league-open-an-operator-freezes-withholdplants">IA-18 Medium (Open League) · open · an operator freezes withhold_plants</a></li><li class="d3"><a href="#ia-19-high-open-league-design-open-scripted-league-agents">IA-19 High (Open League, design) · open · scripted league agents</a></li><li class="d3"><a href="#ia-20-low-legal-wording-open">IA-20 Low (legal wording) · open</a></li><li class="d3"><a href="#ia-22-low-disclosure-open">IA-22 Low (disclosure) · open</a></li><li class="d2"><a href="#6-legal-exposure-notes-not-legal-advice">6. Legal-exposure notes (not legal advice)</a></li></ol></aside>
+</div>
+</main>
+<footer class="foot">
+  <div class="foot-grid">
+    <div><div class="ca" data-ca></div><p class="foot-links" data-token-links></p></div>
+    <div><h2>Watch</h2><ul><li><a href="/">The current test</a></li><li><a href="/live">Live runs</a></li><li><a href="/integrity">Integrity Index</a></li><li><a href="/cases">Case files</a></li></ul></div><div><h2>Take part</h2><ul><li><a href="/plant">Plant bait</a></li><li><a href="/sureties">Stand surety</a></li><li><a href="/forecasts">Free forecasts</a></li></ul></div><div><h2>Check</h2><ul><li><a href="/docs/trust">Trust points</a></li><li><a href="/docs/methodology">Methodology</a></li><li><a href="/log">Transparency log</a></li><li><a href="/status">Status</a></li></ul></div><div><h2>Record</h2><ul><li><a href="/docs">The paper</a></li><li><a href="/developers">Developers</a></li><li><a href="/changelog">Changelog</a></li><li><a href="/reports">Test reports</a></li><li><a href="/docs/right-of-reply">Right of reply</a></li></ul></div>
+  </div>
+  <dl class="foot-facts">
+    <div><dt>Program</dt><dd class="mono">CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr</dd></div>
+  </dl>
+  <p class="foot-note">Rates are from our tests, per exact model version, with 95% intervals and every run published. Agents act only inside a closed program ledger against addresses we own; real SOL moves only at settlement, by rule. Forecasts are free.</p>
+</footer>
+</body>
+</html>

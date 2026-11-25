@@ -45,7 +45,9 @@ if (!c) {
   if (!text) $('[data-transcript]').innerHTML = '<p class="empty">The transcript is published after the test settles.</p>';
   else {
     const L1 = lines(text), E = L1.map(l => JSON.parse(l));
-    $('[data-transcript]').innerHTML = E.map(e => `<div class="entry"><span class="k">#${e.i} · ${esc(e.kind)} · ${esc(e.provider || '')} ${esc(e.model || '')}${e.request_id ? ' · ' + esc(e.request_id) : ''}</span><pre>${esc(JSON.stringify(e.body, null, 1))}</pre></div>`).join('');
+    // tool calls and the model's words stay open; inputs it read (system, inbox, results, meta) fold
+    const open = k => k === 'tool_call' || k === 'assistant';
+    $('[data-transcript]').innerHTML = E.map(e => { const head = `#${e.i} · ${esc(e.kind)} · ${esc(e.provider || '')} ${esc(e.model || '')}${e.request_id ? ' · ' + esc(e.request_id) : ''}`; const pre = `<pre>${esc(JSON.stringify(e.body, null, 1))}</pre>`; return open(e.kind) ? `<div class="entry"><span class="k">${head}</span>${pre}</div>` : `<details class="entry"><summary class="k">${head}</summary>${pre}</details>`; }).join('');
     // the check: steps, this run's root, the docket root over every started run's root
     const steps = new Set(await Promise.all(L1.map(async l => hex(await sha(utf8(l))))));
     const stepsOk = c.acts.every(a => steps.has(a.step));

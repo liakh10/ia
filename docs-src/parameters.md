@@ -24,6 +24,7 @@ rotation rules, which apply at once.
 | runs per model per test | up to 3 (1 + plants / 3) | 1 to 8 |
 | minimum surety deposit | 0.1 SOL | at least 0.001 SOL |
 | unbond delay | 9,000 slots (about 1 h) | at least a test's two windows, at most 216,000 |
+| exit gap: slots between a test's settlement and the next open, when sureties enter and leave | 300 slots (about 2 min) | 150 to 216,000 |
 | runner draw per test | 0.2 SOL | at most 2 SOL |
 | runner fund cap (surplus spills into the purses) | 5 SOL | draw cap to 1,000 SOL |
 | treasury exemption | holding 1,000,000 $IA | at least 1 |

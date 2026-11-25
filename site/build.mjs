@@ -24,7 +24,8 @@ const REPO = (cfg('REPO') || 'https://github.com/liakh10/ia') + '/blob/main/';
 const site = { origin, program: cfg('PROGRAM'), repo: REPO };
 
 const outputs = new Map();
-const emit = (p, s) => outputs.set(p, s);
+// en dashes in ranges and names (written by every part's reports) render as hyphens: the site's copy uses no long dashes
+const emit = (p, s) => outputs.set(p, p.endsWith('.html') ? s.replace(/\u2013/g, '-') : s);
 const pages = new Set();
 
 /* ------------------------------------------------------------------ the paper */
@@ -166,7 +167,7 @@ for (const [p, s] of outputs) {
   if (!p.endsWith('.html')) continue;
   for (const m of s.matchAll(/href="(\/[^"]*)"/g)) if (!known(m[1])) dead.push(`${p}: ${m[1]}`);
   const text = s.replace(/<(script|style)[\s\S]*?<\/\1>/g, '').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ');
-  for (const [re, what] of BANNED) { const m = re.exec(text); if (m && !(what === 'betting word' && /no betting|not a wager|never a wager|no odds|without odds|no wagers|not betting/i.test(text.slice(Math.max(0, m.index - 40), m.index + 40)))) copyBad.push(`${p}: ${what} "${text.slice(Math.max(0, m.index - 30), m.index + 30).replace(/\s+/g, ' ').trim()}"`); }
+  for (const [re, what] of BANNED) { const m = re.exec(text); if (m && !(what === 'betting word' && /no betting|not a wager|never a wager|no odds|without odds|no wagers|not betting|takes a wager|no house/i.test(text.slice(Math.max(0, m.index - 40), m.index + 40)))) copyBad.push(`${p}: ${what} "${text.slice(Math.max(0, m.index - 30), m.index + 30).replace(/\s+/g, ' ').trim()}"`); }
 }
 
 let changed = 0;

@@ -84,6 +84,8 @@ export class Lab {
     this.events = [];               // every program event seen, in order: { name, data, sig, slot }
     this.listeners = new Set();     // (kind, payload) → void: 'event' and 'entry'
     this.sigs = new Set();
+    this.registry = null;           // base URL of the real plant registry and log (ia/registry, CONTRACT §7–§8), when mounted
+    this.cronSecret = null;
   }
   /** reload what the lab knows after a restart: every program transaction on this chain (oldest first), the sealed plants the
    *  lab still holds, and the transcripts it wrote */
@@ -185,7 +187,7 @@ export class Lab {
 
   /* ------------------------------------------------------------------ setup */
   /** one call: keys funded, init_config, the lab's windows, the lineup (6 agents by default). Safe to call again. */
-  async setup({ plantWindow = 40, runWindow = 120, unbondDelay = 200, models = LINEUP } = {}) {
+  async setup({ plantWindow = 40, runWindow = 120, unbondDelay = 200, exitGap = 10, models = LINEUP } = {}) {
     await this.fund(this.admin, 100);
     for (const k of [this.runner, this.wallet, ...this.investigators, ...this.sureties]) await this.fund(k, 50);
     await this.fund(this.dev, 1);
@@ -197,8 +199,8 @@ export class Lab {
       c = await this.fetch('config', this.CONFIG);
     }
     const p = c.params;
-    const want = { ...p, plantWindow: new BN(plantWindow), runWindow: new BN(runWindow), unbondDelay: new BN(Math.max(unbondDelay, plantWindow + runWindow)) };
-    if (Number(p.plantWindow) !== plantWindow || Number(p.runWindow) !== runWindow) await this.send(this.program.methods.setParams(want).accountsPartial({ admin: this.admin.publicKey, config: this.CONFIG }), 'set_params');
+    const want = { ...p, plantWindow: new BN(plantWindow), runWindow: new BN(runWindow), unbondDelay: new BN(Math.max(unbondDelay, plantWindow + runWindow)), ...(p.exitGap !== undefined ? { exitGap: new BN(exitGap) } : {}) };
+    if (Number(p.plantWindow) !== plantWindow || Number(p.runWindow) !== runWindow || (p.exitGap !== undefined && Number(p.exitGap) !== exitGap)) await this.send(this.program.methods.setParams(want).accountsPartial({ admin: this.admin.publicKey, config: this.CONFIG }), 'set_params');
     for (let i = c.agentCount; i < models.length; i++) {
       await this.send(this.program.methods.addAgent(models[i]).accountsPartial({ admin: this.admin.publicKey, config: this.CONFIG, agent: this.agentPda(i) }), `add_agent ${i} ${models[i]}`);
     }
@@ -234,10 +236,15 @@ export class Lab {
     const c = await this.fetch('config', this.CONFIG);
     if (!c) throw Error('run setup first');
     const seq = Number(c.nextRound);
+    if (seq && c.params.exitGap !== undefined) {
+      // the exit gap after the previous round (sureties enter and leave then)
+      const prev = await this.fetch('round', this.roundPda(seq - 1));
+      if (prev && prev.state === 2) await this.waitSlot(Number(prev.settleSlot) + Number(c.params.exitGap) - 1);
+    }
     const ids = await this.activeIds();
     const sig = await this.send(this.program.methods.openRound()
       .accountsPartial({ payer: this.admin.publicKey, config: this.CONFIG, prevRound: seq ? this.roundPda(seq - 1) : null, round: this.roundPda(seq), slotHashes: new PublicKey('SysvarS1otHashes111111111111111111111111111') })
-      .remainingAccounts(ids.map(i => ({ pubkey: this.agentPda(i), isWritable: false, isSigner: false }))), `open_round ${seq}`);
+      .remainingAccounts(ids.map(i => ({ pubkey: this.agentPda(i), isWritable: true, isSigner: false }))), `open_round ${seq}`);
     return { seq, sig };
   }
   async current() {
@@ -256,6 +263,7 @@ export class Lab {
    *  (ia/registry, CONTRACT §7) runs the full filter; the lab only blocks the obvious, so its tests stay honest. */
   async quote({ class: cls = 0, medium = 0, text = '', target = 0 }) {
     cls = Number(cls); medium = Number(medium);
+    if (this.registry) return this.quoteReal({ cls, medium, text, target });
     const cur = await this.current();
     if (!cur || cur.round.state !== 0) throw Error('no round is open for plants');
     const c = await this.fetch('config', this.CONFIG);
@@ -272,18 +280,66 @@ export class Lab {
     if (cls === 2 && !Number(target)) return { filter: 'rejected', reason: 'a REPORT plant needs a target number' };
     const id = crypto.randomBytes(8).toString('hex');
     const hash = sha(Buffer.from(body));
-    this.quotes.set(id, { seq: cur.seq, idx, cls, medium, target: BigInt(target || 0), canary, body, hash });
+    this.quotes.set(id, { seq: cur.seq, idx, cls, medium, price: this.price(cur.round, c.params), target: BigInt(target || 0), canary, body, hash });
     return { quote: id, round: cur.seq, index: idx, plant: b58(plant), text_hash: hash.toString('hex'), canary: canary ? b58(canary.publicKey) : null, price: String(this.price(cur.round, c.params)), filter: 'ok' };
+  }
+  /** the real registry: it filters, makes the canary, hashes and seals; the lab keeps only what the plant transaction needs */
+  async quoteReal({ cls, medium, text, target }) {
+    const cur = await this.current();
+    const r = await fetch(`${this.registry}/api/plant/quote`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ round: cur ? cur.seq : 0, class: cls, medium, text, target: String(target || 0) }) });
+    const j = await r.json();
+    if (r.status === 422) return { filter: 'rejected', reason: j.error?.message || 'refused', rule: j.error?.details?.rule };
+    if (!r.ok) throw Error(j.error?.message || `registry ${r.status}`);
+    const id = crypto.randomBytes(8).toString('hex');
+    this.quotes.set(id, { seq: Number(j.round), idx: j.index, cls, medium, price: BigInt(j.price), target: BigInt(j.target || 0), canaryKey: j.canary ? new PublicKey(j.canary) : null, hash: Buffer.from(j.textHash, 'hex'), real: true });
+    return { quote: id, round: Number(j.round), index: j.index, plant: j.plant, text_hash: j.textHash, canary: j.canary, price: String(j.price), filter: 'ok', filterVersion: j.filterVersion };
+  }
+  /** runner auth for the registry and log routes: IA-RUNNER1 over method, path, time and the body's sha256, signed by the runner key */
+  runnerAuth(method, p, body = '') {
+    const ts = Math.floor(Date.now() / 1000);
+    const text = `IA-RUNNER1\n${method}\n${p}\n${ts}\n${sha(Buffer.from(body)).toString('hex')}`;
+    return `IA-Runner ${b58(this.runner.publicKey)}.${ts}.${anchor.utils.bytes.bs58.encode(signDetached(Buffer.from(text), this.runner))}`;
+  }
+  async runnerFetch(method, p, payload) {
+    const body = payload ? JSON.stringify(payload) : '';
+    const r = await fetch(this.registry + p, { method, headers: { 'content-type': 'application/json', authorization: this.runnerAuth(method, p, body) }, body: payload ? body : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw Error(`${method} ${p}: ${j.error?.message || r.status}`);
+    return j;
+  }
+  /** after plant close: the registry's delivery feed (only delivered plants, with their texts) becomes the inbox */
+  async feed(seq) {
+    const f = await this.runnerFetch('GET', `/api/plant/internal/${seq}`);
+    for (const p of f.plants) {
+      const cls = typeof p.class === 'number' ? p.class : CLASSES.indexOf(p.class);
+      const medium = typeof p.medium === 'number' ? p.medium : MEDIA.indexOf(p.medium);
+      this.texts.set(`${seq}.${p.idx}`, { text: p.text, class: cls, medium, target: BigInt(p.target || 0) });
+      if (cls === 1) {
+        // the leaked key inside the text: a base58 token that decodes to a 64-byte keypair whose public key is this plant's canary
+        const r = await this.fetch('round', this.roundPda(seq));
+        for (const tok of p.text.match(/[1-9A-HJ-NP-Za-km-z]{80,90}/g) || []) {
+          try { const kp = Keypair.fromSecretKey(anchor.utils.bytes.bs58.decode(tok)); if (kp.publicKey.equals(new PublicKey(r.canary[p.idx]))) this.canaries.set(`${seq}.${p.idx}`, kp); } catch {}
+        }
+      }
+    }
+    this.saveSealed();
+    return f;
+  }
+  async crank() {
+    if (!this.registry || !this.cronSecret) return null;
+    const r = await fetch(`${this.registry}/api/plant/crank`, { headers: { authorization: `Bearer ${this.cronSecret}` } });
+    return r.json().catch(() => null);
   }
   async plant({ quote, who = 0 }) {
     const q = this.quotes.get(quote);
     if (!q) throw Error('unknown quote: ask for a new one');
     const k = who === 'wallet' ? this.wallet : this.investigators[Number(who) || 0];
-    const sig = await this.send(this.program.methods.plant(q.cls, q.medium, [...q.hash], new BN(q.target.toString()), q.canary ? q.canary.publicKey : PublicKey.default)
+    const canaryPk = q.canaryKey || (q.canary ? q.canary.publicKey : PublicKey.default);
+    const sig = await this.send(this.program.methods.plant(q.cls, q.medium, [...q.hash], new BN(q.target.toString()), canaryPk, new BN(q.price.toString()))
       .accountsPartial({ planter: k.publicKey, config: this.CONFIG, round: this.roundPda(q.seq), plant: this.plantPda(q.seq, q.idx), treasury: this.TREASURY, runnerFund: this.FUND, holderToken: null }).signers([k]),
       `plant ${q.seq}/${q.idx} ${CLASSES[q.cls]}`);
     this.quotes.delete(quote);
-    this.deliver(q);
+    if (!q.real) this.deliver(q);
     return { sig, round: q.seq, index: q.idx };
   }
   /** a plant the registry holds (its text hashes to the on-chain hash) is delivered to the runner's inbox */
@@ -304,6 +360,7 @@ export class Lab {
     const cur = await this.current();
     const r = cur.round;
     await this.waitSlot(r.plantClose);
+    if (this.registry) await this.feed(cur.seq);
     // plants signed outside the lab: deliver the ones whose sealed text the lab still holds
     for (const ev of this.events) if (ev.name === 'planted' && Number(ev.data.round) === cur.seq) { const q = this.sealedFor(cur.seq, ev.data.idx); if (q) { this.deliver(q); this.quotes.forEach((v, k) => v === q && this.quotes.delete(k)); } }
     const out = [];
@@ -428,6 +485,10 @@ export class Lab {
     roots[run] = root;
     this.runRoots.set(`${seq}.${agent}`, roots);
     this.writeTranscript(seq, agent, run, entries);
+    if (this.registry) {
+      const j = await this.runnerFetch('POST', '/api/log/transcript', { seq, agent, run, jsonl: entries.map(canonical).join('\n') + '\n' });
+      if (j.runRoot !== root.toString('hex')) throw Error(`the log computed run root ${j.runRoot}, the lab ${root.toString('hex')}`);
+    }
     return { seq, agent, run, model, script, acts, trail: trail.toString('hex'), transcript_root: root.toString('hex'), entries: entries.length };
   }
   /** the inbox the lab shows its scripted agents: the docket's invoices and every delivered plant, in an order from the seed.
@@ -457,9 +518,14 @@ export class Lab {
       const d = await this.fetch('docket', addr);
       if (!d) continue;
       const roots = (this.runRoots.get(`${cur.seq}.${id}`) || []).filter(Boolean);
+      if (roots.length && this.registry) {
+        const j = await this.runnerFetch('POST', '/api/log/transcript', { seq: cur.seq, agent: id, close: true, runs: roots.length });
+        if (j.docketRoot !== mth(roots).toString('hex')) throw Error(`the log computed docket root ${j.docketRoot}, the lab ${mth(roots).toString('hex')}`);
+      }
       if (roots.length) await this.send(this.program.methods.postTranscript([...mth(roots)]).accountsPartial({ authority: this.runner.publicKey, config: this.CONFIG, agent: this.agentPda(id), docket: addr }).signers([this.runner]), `post_transcript ${cur.seq}/${id}`);
       out.push(await this.send(this.program.methods.settleDocket().accountsPartial({ caller: this.admin.publicKey, config: this.CONFIG, round: this.roundPda(cur.seq), agent: this.agentPda(id), docket: addr, payer: d.payer, runnerFund: this.FUND }), `settle_docket ${cur.seq}/${id}`));
     }
+    await this.crank();
     return out;
   }
   async closeEmpty() {

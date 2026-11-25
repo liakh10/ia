@@ -69,7 +69,7 @@ $('[data-plant]').addEventListener('click', async e => {
   try {
     const me = await ensure();
     const seq = cur.seq;
-    const ix = I.instruction('plant', { class: q.class, medium: q.medium, text_hash: fromHex(q.text_hash), target: BigInt(q.target), canary: q.canary ? new PublicKey(q.canary) : new PublicKey(new Uint8Array(32)) },
+    const ix = I.instruction('plant', { class: q.class, medium: q.medium, text_hash: fromHex(q.text_hash), target: BigInt(q.target), canary: q.canary ? new PublicKey(q.canary) : new PublicKey(new Uint8Array(32)), max_price: BigInt(q.price) },
       { planter: me, config: addr.config(I), round: addr.round(I, seq), plant: addr.plant(I, seq, q.index), treasury: addr.treasury(I), runner_fund: addr.fund(I), holder_token: await holderToken(me) });
     const sig = await send([ix], err => I.explain(err));
     $('[data-done]').textContent = `Planted: #${q.index} in test #${seq} (${short(sig)}). It stays sealed until the test settles.`;

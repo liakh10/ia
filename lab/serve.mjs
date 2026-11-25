@@ -6,7 +6,7 @@
 //                                     close-empty, claim, auto, backfill; GET /lab/api/state
 //   GET  /lab/api/stream              SSE: program events, transcript entries and the lab's log lines as they happen
 //   GET  /api/runner/stream?seq=      SSE in the runner's shape (BUILD interface 3): {seq, agent, run, entry}
-//   POST /api/plant/quote, GET /api/plant/:round/:idx      the registry's surface (CONTRACT §7), played by the lab
+//   /api/plant/*, /api/log/*          the real plant registry and log (verifier bundle) with lab keys; IA_LAB_REGISTRY=stub plays them
 //   ANY  /v1/*                        the read API (CONTRACT §9): devx's router (api/v1) on the lab chain, or a proxy to IA_API
 //   POST /api/rpc                     JSON-RPC to the lab chain, so pages read the chain from the same origin
 //   GET  /lab/wallet, POST /lab/wallet/sign   a dev wallet the site pages can sign with (a throwaway key in lab/.run/keys)
@@ -68,6 +68,31 @@ process.env.IA_REGISTRY_URL ??= `http://127.0.0.1:${port}`;
 process.env.IA_FORECAST_FILE ??= path.join(STATE, 'forecasts.json');
 process.env.IA_INDEX_INTERVAL_MS ??= '1500';
 let handleV1 = null;
+
+/* the real plant registry and transparency log (verifier's bundle, registry/dist), with lab-only keys and an fs store in lab/.run;
+   IA_CONFIG_DIR points into the lab so the bundle never reads ~/.config/ia. IA_LAB_REGISTRY=stub keeps the lab's own stand-in. */
+let verifier = null;
+if (process.env.IA_LAB_REGISTRY !== 'stub') {
+  try {
+    const keyDir = path.join(STATE, 'keys');
+    lab.key('log');
+    const seal = path.join(keyDir, 'seal.hex');
+    if (!fs.existsSync(seal)) fs.writeFileSync(seal, crypto.randomBytes(32).toString('hex'), { mode: 0o600 });
+    process.env.IA_CONFIG_DIR = keyDir;
+    process.env.IA_LOG_KEY = fs.readFileSync(path.join(keyDir, 'log.json'), 'utf8');
+    process.env.IA_SEAL_KEY = fs.readFileSync(seal, 'utf8').trim();
+    process.env.IA_STORE = 'fs:' + path.join(STATE, 'registry');
+    process.env.SOLANA_RPC = lab.rpc;
+    process.env.IA_PROGRAM = lab.PID.toBase58();
+    process.env.CRON_SECRET = lab.cronSecret = crypto.randomBytes(16).toString('hex');
+    process.env.IA_LOG_URL ??= `http://127.0.0.1:${port}/api/log`;
+    // readers pin the log's PUBLIC key; the secret keypair stays with the verifier routes only (devx's env below drops it)
+    process.env.IA_LOG_KEYS = lab.key('log').publicKey.toBase58();
+    const V = await import('../registry/dist/ia-verifier.mjs');
+    verifier = { plant: V.node(V.plantRoutes), log: V.node(V.logRoutes) };
+    lab.registry = `http://127.0.0.1:${port}`;
+  } catch (e) { console.log('lab: the verifier bundle did not load (' + e.message + '); using the lab stand-in for /api/plant'); }
+}
 async function v1(req, res, url) {
   if (API) {
     const r = await fetch(API.replace(/\/$/, '') + url.pathname + url.search, { method: req.method, headers: { 'content-type': 'application/json' }, body: req.method === 'POST' ? JSON.stringify(await body(req)) : undefined });
@@ -75,7 +100,8 @@ async function v1(req, res, url) {
     return res.end(Buffer.from(await r.arrayBuffer()));
   }
   handleV1 ??= (await import('../api/v1/_core.js')).handleV1;
-  const out = await handleV1({ method: req.method, path: url.pathname.replace(/^\/v1\/?/, ''), query: Object.fromEntries(url.searchParams), body: req.method === 'POST' ? await new Promise(ok => { let b = ''; req.on('data', c => { b += c; }); req.on('end', () => ok(b)); }) : undefined, ip: '127.0.0.1', origin: `http://127.0.0.1:${port}` });
+  const env = { ...process.env }; delete env.IA_LOG_KEY; delete env.IA_SEAL_KEY;
+  const out = await handleV1({ env, method: req.method, path: url.pathname.replace(/^\/v1\/?/, ''), query: Object.fromEntries(url.searchParams), body: req.method === 'POST' ? await new Promise(ok => { let b = ''; req.on('data', c => { b += c; }); req.on('end', () => ok(b)); }) : undefined, ip: '127.0.0.1', origin: `http://127.0.0.1:${port}` });
   res.writeHead(out.status, { 'content-type': 'application/json', ...out.headers, 'cache-control': 'no-store' });
   res.end(typeof out.body === 'string' ? out.body : JSON.stringify(out.body));
 }
@@ -148,6 +174,8 @@ const server = http.createServer(async (req, res) => {
       const r = await fetch(lab.rpc, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(await body(req)) });
       res.writeHead(r.status, { 'content-type': 'application/json' }); return res.end(Buffer.from(await r.arrayBuffer()));
     }
+    if (verifier && (p === '/api/plant' || p.startsWith('/api/plant/'))) return await verifier.plant(req, res);
+    if (verifier && (p === '/api/log' || p.startsWith('/api/log/'))) return await verifier.log(req, res);
     if (p.startsWith('/api/plant/')) return await plantApi(req, res, url);
     if (p === '/v1' || p.startsWith('/v1/')) return await v1(req, res, url);
     if (p === '/ui/idl.json' && fs.existsSync(path.join(STATE, 'ia.json'))) { res.writeHead(200, { 'content-type': 'application/json' }); return fs.createReadStream(path.join(STATE, 'ia.json')).pipe(res); }
@@ -158,4 +186,4 @@ const server = http.createServer(async (req, res) => {
     fs.existsSync(path.join(root, '404.html')) ? fs.createReadStream(path.join(root, '404.html')).pipe(res) : res.end('not found');
   } catch (e) { json(res, 500, { error: e.message }); }
 });
-server.listen(port, '127.0.0.1', () => console.log(`ia lab on http://127.0.0.1:${port}/lab · chain ${lab.rpc}${API ? ' · /v1 → ' + API : ''}${REGISTRY ? ' · registry → ' + REGISTRY : ''}`));
+server.listen(port, '127.0.0.1', () => console.log(`ia lab on http://127.0.0.1:${port}/lab · chain ${lab.rpc}${API ? ' · /v1 → ' + API : ''}${verifier ? ' · registry and log: verifier bundle' : REGISTRY ? ' · registry → ' + REGISTRY : ' · registry: lab stand-in'}`));

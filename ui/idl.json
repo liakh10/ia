@@ -1372,7 +1372,8 @@
     {
       "name": "plant",
       "docs": [
-        "Anyone but the runner key, inside the plant window. The text itself goes to the plant registry; its sha256 is fixed here."
+        "Anyone but the runner key, inside the plant window. The text itself goes to the plant registry; its sha256 is fixed here.",
+        "`max_price`: the planter's limit (the price rises 10% with every plant before it lands)."
       ],
       "discriminator": [
         200,
@@ -1515,6 +1516,10 @@
         {
           "name": "canary",
           "type": "pubkey"
+        },
+        {
+          "name": "max_price",
+          "type": "u64"
         }
       ]
     },
@@ -1954,7 +1959,8 @@
       "name": "require_record",
       "docs": [
         "A calling program checks an agent's record by CPI: ≥ `min_runs` started runs in its current exact model version, taken runs",
-        "≤ `max_taken_bps` of them, the record reaching back to `since_round`. Fails otherwise; returns the record (return data)."
+        "≤ `max_taken_bps` of them, the record reaching back to `since_round`. House agents only unless `allow_league` (an Open League",
+        "agent's runs are self-reported). Fails otherwise; returns the record (return data)."
       ],
       "discriminator": [
         42,
@@ -2002,6 +2008,10 @@
         {
           "name": "since_round",
           "type": "u64"
+        },
+        {
+          "name": "allow_league",
+          "type": "bool"
         }
       ],
       "returns": {
@@ -2252,8 +2262,8 @@
       "name": "settle_docket",
       "docs": [
         "Anyone, after the run window (at once while closing): tiers, bounties (agent → round), the agent's share of the round's plant",
-        "fees (round → agent), the stats and the epoch record; the docket closes to its payer. An Open League agent that started no run",
-        "forfeits its share to the runner fund and leaves the league."
+        "fees (round → house agent), the stats and the epoch record; the docket closes to its payer. An Open League agent takes no",
+        "share; one that started no run leaves the league."
       ],
       "discriminator": [
         140,
@@ -2567,8 +2577,8 @@
     {
       "name": "withdraw",
       "docs": [
-        "Between the request's maturity and its expiry, and never while the agent is under test. An active Open League agent keeps",
-        "its minimum bond."
+        "From the request's maturity until one delay later (a test in between restarts that count when it ends), and never while the",
+        "agent is under test. An active Open League agent keeps its minimum bond."
       ],
       "discriminator": [
         183,
@@ -2736,7 +2746,8 @@
     {
       "name": "withhold_plants",
       "docs": [
-        "The runner marks the plants the registry never delivered (no text at plant close), before the first run of the round starts.",
+        "The runner marks the plants the registry never delivered (no text at plant close), before the round's first house run starts",
+        "(an Open League run cannot block it: the mask is applied at settlement to every docket).",
         "They are never shown and cannot be taken. Bits only add."
       ],
       "discriminator": [
@@ -3430,7 +3441,7 @@
     {
       "code": 6045,
       "name": "UnderTest",
-      "msg": "the agent is under test: a docket of it is open"
+      "msg": "the agent is under test (from open_round until its docket settles): no deposit, withdrawal or lineup change"
     },
     {
       "code": 6046,
@@ -3506,6 +3517,21 @@
       "code": 6060,
       "name": "RunsStarted",
       "msg": "a run of this round has started: the withheld plants are fixed"
+    },
+    {
+      "code": 6061,
+      "name": "ExitGap",
+      "msg": "the exit gap after the previous round has not passed yet (sureties enter and leave between rounds)"
+    },
+    {
+      "code": 6062,
+      "name": "PriceMoved",
+      "msg": "the plant price is above the planter's max_price"
+    },
+    {
+      "code": 6063,
+      "name": "LeagueRecord",
+      "msg": "an Open League record is self-reported: pass allow_league to accept it"
     }
   ],
   "types": [
@@ -3745,6 +3771,20 @@
                 "name": "Record"
               }
             }
+          },
+          {
+            "name": "free_since",
+            "docs": [
+              "The slot the agent last stopped being under test (unbond deadlines count from it)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "share_epoch",
+            "docs": [
+              "Bumped when a wiped-out purse resets its shares: surety shares of an older epoch count as 0."
+            ],
+            "type": "u32"
           }
         ]
       }
@@ -4165,7 +4205,8 @@
     {
       "name": "DocketSettled",
       "docs": [
-        "`forfeited`: an Open League agent that started no run; its purse share went to the runner fund and it left the league."
+        "`purse_share` is 0 for an Open League agent (self-reported: it never shares the investigators' fees). `retired`: an Open League",
+        "agent that started no run and left the league."
       ],
       "type": {
         "kind": "struct",
@@ -4222,7 +4263,7 @@
             "type": "u64"
           },
           {
-            "name": "forfeited",
+            "name": "retired",
             "type": "bool"
           },
           {
@@ -4417,6 +4458,13 @@
               "Open League seats; 0 = the league is closed."
             ],
             "type": "u8"
+          },
+          {
+            "name": "exit_gap",
+            "docs": [
+              "Slots between a round's settlement and the next `open_round`: the window in which sureties enter and leave."
+            ],
+            "type": "u64"
           }
         ]
       }
@@ -4846,9 +4894,20 @@
           {
             "name": "runs_started",
             "docs": [
-              "Runs started in this round (the withheld mask is fixed once one starts)."
+              "House runs started in this round (the withheld mask is fixed once one starts)."
             ],
             "type": "u16"
+          },
+          {
+            "name": "house_len",
+            "docs": [
+              "House agents in the lineup (only they share the purse pool) and how many of them settled."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "house_settled",
+            "type": "u8"
           }
         ]
       }
@@ -5115,7 +5174,7 @@
       "name": "RunnerFund",
       "docs": [
         "12% of plant prices: the runner's inference bills and transaction fees, drawn under a per-round cap. Above its cap it spills into",
-        "the purses; it also receives what planters never claimed and the shares an Open League agent forfeits by not running."
+        "the purses; it also receives what planters never claimed and the pool of a round whose lineup has no house agent."
       ],
       "type": {
         "kind": "struct",
@@ -5278,6 +5337,13 @@
               "The unbond delay in force when the request was made (a later parameter change does not move it)."
             ],
             "type": "u64"
+          },
+          {
+            "name": "share_epoch",
+            "docs": [
+              "The agent's share epoch these shares belong to."
+            ],
+            "type": "u32"
           }
         ]
       }
