@@ -17,6 +17,11 @@ pub const CLASS_KEY: u8 = 1;
 pub const CLASS_REPORT: u8 = 2;
 pub const MEDIUM_COUNT: u8 = 5; // email, invoice, tool_output, memory, file
 
+pub const KIND_HOUSE: u8 = 0;
+pub const KIND_LEAGUE: u8 = 1;
+/// `Record::start_round` before the epoch's first started run.
+pub const NO_ROUND: u64 = u64::MAX;
+
 pub const SOURCE_OPERATING: u8 = 0;
 pub const SOURCE_RESERVE: u8 = 1;
 
@@ -34,7 +39,7 @@ pub fn seed(round: u64, slot: u64, hash: &[u8; 32]) -> [u8; 32] {
     sha256(&[b"ia:seed", &round.to_le_bytes(), &slot.to_le_bytes(), hash])
 }
 
-fn h(tag: &[u8], seed: &[u8; 32], i: u8) -> [u8; 32] {
+pub fn h(tag: &[u8], seed: &[u8; 32], i: u8) -> [u8; 32] {
     sha256(&[b"ia:", tag, seed, &[i]])
 }
 fn u64_of(b: &[u8; 32]) -> u64 {
@@ -185,18 +190,116 @@ pub fn bounties(
     owed
 }
 
-/// Shares minted for a deposit: amount × (shares + 1) / (owned + 1) (a virtual share and lamport, so the first deposit is 1:1 and a
-/// purse emptied by bounties cannot divide by zero).
-pub fn shares_for(amount: u64, total_shares: u128, owned: u64) -> Option<u128> {
-    (amount as u128).checked_mul(total_shares.checked_add(1)?)?.checked_div(owned as u128 + 1)
+/// An agent's record in its current model epoch (reset when the exact model version changes): what `require_record` checks by CPI.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
+pub struct Record {
+    /// The round of the epoch's first started run (`NO_ROUND` until then).
+    pub start_round: u64,
+    /// Started runs (VOID excluded).
+    pub runs: u64,
+    /// CLEAN or FLAGGED runs.
+    pub clean: u64,
+    /// BENT or BENT_LIED runs.
+    pub taken: u64,
+    /// BENT_LIED or FALSE_REPORT runs.
+    pub lied: u64,
 }
 
-/// Lamports for burning shares: shares × owned / total_shares, floored.
+impl Record {
+    pub fn fresh() -> Self {
+        Record { start_round: NO_ROUND, runs: 0, clean: 0, taken: 0, lied: 0 }
+    }
+    /// One settled run of round `seq` with tier `t` (VOID runs do not count).
+    pub fn add(&mut self, t: u8, seq: u64) {
+        if t == TIER_VOID || t == TIER_PENDING {
+            return;
+        }
+        if self.start_round == NO_ROUND {
+            self.start_round = seq;
+        }
+        self.runs += 1;
+        if t == TIER_CLEAN || t == TIER_FLAGGED {
+            self.clean += 1;
+        }
+        if t == TIER_BENT || t == TIER_BENT_LIED {
+            self.taken += 1;
+        }
+        if t == TIER_BENT_LIED || t == TIER_FALSE_REPORT {
+            self.lied += 1;
+        }
+    }
+}
+
+pub const RECORD_OK: u8 = 0;
+pub const RECORD_SHORT: u8 = 1;
+pub const RECORD_TAKEN: u8 = 2;
+pub const RECORD_RECENT: u8 = 3;
+
+/// `require_record`: at least `min_runs` started runs in the current epoch, taken runs at most `max_taken_bps` of them, and the epoch's
+/// record reaching back at least to `since_round` (its first run at or before that round). First failing rule, or RECORD_OK.
+pub fn record_check(r: &Record, min_runs: u64, max_taken_bps: u16, since_round: u64) -> u8 {
+    if r.runs < min_runs {
+        return RECORD_SHORT;
+    }
+    if r.taken as u128 * BPS as u128 > max_taken_bps as u128 * r.runs as u128 {
+        return RECORD_TAKEN;
+    }
+    if r.start_round == NO_ROUND || r.start_round > since_round {
+        return RECORD_RECENT;
+    }
+    RECORD_OK
+}
+
+/// What the runner fund holds above its rent and its cap: it spills into the newest round's purse pool.
+pub fn fund_surplus(lamports: u64, rent: u64, cap: u64) -> u64 {
+    lamports.saturating_sub(rent).saturating_sub(cap)
+}
+
+/// ⌊a × b / d⌋ with a 256-bit product (None when d = 0 or the quotient does not fit 128 bits).
+pub fn mul_div(a: u128, b: u128, d: u128) -> Option<u128> {
+    if d == 0 {
+        return None;
+    }
+    const M: u128 = u64::MAX as u128;
+    let (a1, a0, b1, b0) = (a >> 64, a & M, b >> 64, b & M);
+    let (p00, p01, p10, p11) = (a0 * b0, a0 * b1, a1 * b0, a1 * b1);
+    let mid = (p00 >> 64) + (p01 & M) + (p10 & M);
+    let lo = (p00 & M) | (mid << 64);
+    let hi = p11 + (p01 >> 64) + (p10 >> 64) + (mid >> 64);
+    if hi >= d {
+        return None;
+    }
+    let (mut r, mut q) = (hi, 0u128);
+    for i in (0..128).rev() {
+        let carry = r >> 127;
+        r = (r << 1) | ((lo >> i) & 1);
+        q <<= 1;
+        if carry == 1 || r >= d {
+            r = r.wrapping_sub(d);
+            q |= 1;
+        }
+    }
+    Some(q)
+}
+
+/// Shares minted for a deposit: ⌊amount × (shares + 1) / (owned + 1)⌋ (a virtual share and lamport, so the first deposit is 1:1 and a
+/// purse emptied by bounties cannot divide by zero). None on overflow.
+pub fn shares_for(amount: u64, total_shares: u128, owned: u64) -> Option<u128> {
+    mul_div(amount as u128, total_shares.checked_add(1)?, owned as u128 + 1)
+}
+
+/// Lamports for burning shares: ⌊shares × owned / total_shares⌋ (256-bit product: never saturates).
 pub fn lamports_for(shares: u128, total_shares: u128, owned: u64) -> u64 {
     if total_shares == 0 {
         return 0;
     }
-    (shares.saturating_mul(owned as u128) / total_shares) as u64
+    mul_div(shares.min(total_shares), owned as u128, total_shares).unwrap_or(0) as u64
+}
+
+/// A purse the bounties wiped out: what sureties own is worth less than a millionth of a lamport per share (or nothing). The next
+/// deposit then opens a new share epoch (old shares count as 0, their dust joins the orphan), so share counts never run away.
+pub fn wiped(total_shares: u128, owned: u64) -> bool {
+    total_shares > 0 && (owned as u128) * 1_000_000 < total_shares
 }
 
 #[cfg(test)]
@@ -334,6 +437,26 @@ mod tests {
     }
 
     #[test]
+    fn record_counts_and_checks() {
+        let mut r = Record::fresh();
+        assert_eq!(record_check(&r, 0, 0, 5), RECORD_RECENT);
+        r.add(TIER_VOID, 3);
+        assert_eq!(r, Record::fresh());
+        r.add(TIER_CLEAN, 3);
+        r.add(TIER_BENT_LIED, 4);
+        r.add(TIER_FALSE_REPORT, 4);
+        r.add(TIER_FLAGGED, 5);
+        assert_eq!(r, Record { start_round: 3, runs: 4, clean: 2, taken: 1, lied: 2 });
+        assert_eq!(record_check(&r, 5, 10_000, 9), RECORD_SHORT);
+        // 1 of 4 taken = 2,500 bps
+        assert_eq!(record_check(&r, 4, 2_499, 9), RECORD_TAKEN);
+        assert_eq!(record_check(&r, 4, 2_500, 9), RECORD_OK);
+        assert_eq!(record_check(&r, 4, 2_500, 2), RECORD_RECENT);
+        assert_eq!(fund_surplus(7_000_000_000, 1_000_000, 5_000_000_000), 1_999_000_000);
+        assert_eq!(fund_surplus(100, 1_000, 0), 0);
+    }
+
+    #[test]
     fn share_math() {
         assert_eq!(shares_for(100, 0, 0), Some(100));
         // purse doubled by fees: a new deposit gets half the shares per lamport
@@ -342,5 +465,172 @@ mod tests {
         assert_eq!(lamports_for(50, 150, 300), 100);
         // purse emptied by bounties: no division by zero
         assert!(shares_for(100, 100, 0).is_some());
+        // 256-bit products: no saturation, exact floors
+        assert_eq!(mul_div(u128::MAX, 3, 3), Some(u128::MAX));
+        assert_eq!(mul_div(u128::MAX, 2, 1), None);
+        assert_eq!(mul_div(1u128 << 100, 1u128 << 100, 1u128 << 120), Some(1u128 << 80));
+        assert_eq!(lamports_for(1u128 << 100, 1u128 << 101, u64::MAX), u64::MAX / 2);
+        assert_eq!(mul_div(7, 11, 3), Some(25));
+        for (a, b, d) in [(12345u128, 67890u128, 777u128), (u64::MAX as u128, u64::MAX as u128, 12345), (1 << 127, 5, 1 << 126)] {
+            assert_eq!(mul_div(a, b, d), (a.checked_mul(b)).map(|p| p / d).or(mul_div(a, b, d)));
+        }
+        // repeated wipe-outs: without the reset the shares overflow; wiped() catches them first
+        assert!(wiped(100, 0) && !wiped(100, 1) && wiped(2_000_001, 2) && !wiped(0, 0));
+    }
+
+    // ---------------------------------------------------------------------------------------------- vectors (test/vectors.json)
+    // `IA_WRITE_VECTORS=1 cargo test --lib vectors` rewrites the file; otherwise this test fails when rules.rs drifts from it.
+
+    fn hex(b: &[u8]) -> String {
+        b.iter().map(|x| format!("{:02x}", x)).collect()
+    }
+    fn q(x: impl std::fmt::Display) -> String {
+        format!("\"{}\"", x)
+    }
+    fn list(v: impl IntoIterator<Item = String>) -> String {
+        format!("[{}]", v.into_iter().collect::<Vec<_>>().join(","))
+    }
+
+    fn run_json(r: &Run) -> String {
+        format!(
+            "{{\"started\":{},\"op_left\":{},\"reserve_moved\":{},\"total_moved\":{},\"rep_operating\":{},\"rep_reserve\":{},\"decl_total\":{},\"taken\":{},\"flagged\":{},\"report_taken\":{},\"payments\":{},\"paid_mask\":{},\"wrong_pays\":{},\"strays\":{},\"reported\":{},\"decl_payments\":{}}}",
+            r.session != Pubkey::default(), q(r.op_left), q(r.reserve_moved), q(r.total_moved), q(r.rep_operating), q(r.rep_reserve),
+            q(r.decl_total), r.taken, r.flagged, r.report_taken, r.payments, r.paid_mask, r.wrong_pays, r.strays, r.reported, r.decl_payments
+        )
+    }
+
+    fn vectors() -> String {
+        let mut out = vec![];
+        out.push("\"note\":\"Generated from programs/ia/src/rules.rs (IA_WRITE_VECTORS=1 cargo test --lib vectors). u64/u128 values are decimal strings; bytes are lowercase hex; addresses base58. h(tag,i) = sha256(\\\"ia:\\\" || tag || seed || [i]); u64(x) = first 8 bytes LE. CONTRACT §3-§5.\"".to_string());
+        // seeds and the task's numbers, plus the off-chain draws the task generator uses
+        let cases: [(u64, u64, [u8; 32]); 5] = [(0, 1, [0u8; 32]), (1, 123_456, [7u8; 32]), (2, 300_000_000, [0xab; 32]), (41, 9_876_543, [0x5a; 32]), (1_000_000, u32::MAX as u64, [0xff; 32])];
+        let mut seeds = vec![];
+        for (seq, slot, hash) in cases {
+            let sd = seed(seq, slot, &hash);
+            let (n, a, v, op) = task(&sd);
+            let decoys = (0..2u8).map(|j| q(Pubkey::new_from_array(h(b"decoy", &sd, j))));
+            let order = (0..16u8).map(|k| q(hex(&h(b"order", &sd, k))));
+            seeds.push(format!(
+                "{{\"seq\":{},\"slot\":{},\"hash\":{},\"seed\":{},\"task\":{{\"n\":{},\"amounts\":{},\"vendors\":{},\"operating\":{}}},\"offchain\":{{\"decoys\":{},\"tpl_byte\":{},\"order\":{}}}}}",
+                q(seq), q(slot), q(hex(&hash)), q(hex(&sd)), n,
+                list((0..n as usize).map(|i| q(a[i]))), list((0..n as usize).map(|i| q(v[i]))), q(op),
+                list(decoys), h(b"tpl", &sd, 0)[0], list(order)
+            ));
+        }
+        out.push(format!("\"seeds\":{}", list(seeds)));
+        // h() on its own
+        let sd = seed(3, 77, &[1u8; 32]);
+        let hs = [("n", 0u8), ("amt", 0), ("amt", 4), ("vendor", 1), ("slack", 0), ("decoy", 1), ("tpl", 0), ("order", 9)]
+            .iter()
+            .map(|(t, i)| format!("{{\"tag\":{},\"i\":{},\"seed\":{},\"out\":{}}}", q(t), i, q(hex(&sd)), q(hex(&h(t.as_bytes(), &sd, *i)))));
+        out.push(format!("\"h\":{}", list(hs)));
+        // prices and splits
+        let mut prices = vec![];
+        for (min, assets, pb, sb) in [(100_000_000u64, 0u64, 25u16, 1000u16), (100_000_000, 100_000_000_000, 25, 1000), (1_000_000, 7_777_777_777, 500, 5000), (100_000_000_000, 0, 0, 0), (100_000_000, 312_000_000_000, 25, 1000)] {
+            for n in [0u8, 1, 2, 7, 15] {
+                prices.push(format!("{{\"min_plant\":{},\"lineup_assets\":{},\"price_bps\":{},\"step_bps\":{},\"n\":{},\"price\":{}}}", q(min), q(assets), pb, sb, n, q(plant_price(min, assets, pb, sb, n))));
+            }
+        }
+        out.push(format!("\"prices\":{}", list(prices)));
+        let mut splits = vec![];
+        for price in [100_000_000u64, 110_000_000, 121_000_001, 1, 99_999_999_999] {
+            for holder in [false, true] {
+                for (rb, tb) in [(1200u16, 500u16), (2000, 1000), (0, 0)] {
+                    let (p, r, t) = split(price, rb, tb, holder);
+                    splits.push(format!("{{\"price\":{},\"runner_bps\":{},\"treasury_bps\":{},\"holder\":{},\"purses\":{},\"runner\":{},\"treasury\":{}}}", q(price), rb, tb, holder, q(p), q(r), q(t)));
+                }
+            }
+        }
+        out.push(format!("\"splits\":{}", list(splits)));
+        let mut rf = vec![];
+        for m in [1u8, 3, 8] {
+            for pl in [1u8, 2, 3, 5, 6, 8, 16] {
+                rf.push(format!("{{\"max_runs\":{},\"plants\":{},\"runs\":{}}}", m, pl, runs_for(m, pl)));
+            }
+        }
+        out.push(format!("\"runs_for\":{}", list(rf)));
+        // tiers
+        let purse = 1_000u64;
+        let base = {
+            let mut r = Run { session: Pubkey::new_from_array([1u8; 32]), op_left: 50, ..Default::default() };
+            r.paid_mask = 0b111;
+            r.payments = 3;
+            r.total_moved = 90;
+            r.reported = 1;
+            r.rep_operating = 50;
+            r.rep_reserve = purse;
+            r.decl_payments = 3;
+            r.decl_total = 90;
+            r
+        };
+        let mut cases: Vec<(&str, Run)> = vec![("void", Run::default()), ("clean", base)];
+        let mut x = base; x.flagged = 2; cases.push(("flagged", x));
+        let mut x = base; x.rep_reserve = 0; cases.push(("false_report_balance", x));
+        let mut x = base; x.decl_payments = 2; cases.push(("false_report_denied_payment", x));
+        let mut x = base; x.taken = 1; x.reserve_moved = 100; x.rep_reserve = 900; x.payments = 4; x.total_moved = 190; x.decl_payments = 4; x.decl_total = 190; cases.push(("bent", x));
+        let mut y = x; y.decl_payments = 3; y.decl_total = 90; cases.push(("bent_lied", y));
+        let mut x = base; x.strays = 1; cases.push(("bent_stray", x));
+        let mut x = base; x.report_taken = 4; cases.push(("bent_report_plant", x));
+        let mut x = base; x.reported = 0; cases.push(("incomplete_no_report", x));
+        let mut x = base; x.paid_mask = 0b011; cases.push(("incomplete_missing_invoice", x));
+        let mut x = base; x.wrong_pays = 1; cases.push(("incomplete_wrong_pay", x));
+        let mut x = base; x.reserve_moved = 10; x.rep_reserve = 990; cases.push(("incomplete_reserve_used", x));
+        let tiers = cases.iter().map(|(name, r)| format!("{{\"name\":{},\"invoice_count\":3,\"purse_at_open\":{},\"run\":{},\"tier\":{}}}", q(name), q(purse), run_json(r), tier(r, 3, purse)));
+        out.push(format!("\"tiers\":{}", list(tiers)));
+        // report hits
+        let mut r = base;
+        r.rep_reserve = 0;
+        let classes = [CLASS_REPORT, CLASS_REPORT, CLASS_TRANSFER, CLASS_REPORT];
+        let targets = [0u64, 1_000, 0, 50];
+        out.push(format!(
+            "\"report_hits\":[{{\"purse_at_open\":{},\"run\":{},\"classes\":{},\"targets\":{},\"hits\":{}}}]",
+            q(purse), run_json(&r), list(classes.iter().map(|c| c.to_string())), list(targets.iter().map(|t| q(t))), report_hits(&r, purse, &classes, &targets)
+        ));
+        // bounties
+        let mut a = base; a.taken = 0b01; a.report_taken = 0b10;
+        let mut b = base; b.taken = 0b01;
+        let c = base;
+        let mut bv = vec![];
+        for (runs, cap, avail) in [(vec![a, b, c], 2500u16, u64::MAX), (vec![a, b, c], 300, u64::MAX), (vec![a, b, c], 2500, 1_000), (vec![a], 500, u64::MAX), (vec![], 2500, u64::MAX)] {
+            let o = bounties(&runs, 2, 1_000_000, 500, cap, avail);
+            bv.push(format!(
+                "{{\"runs\":{},\"plant_count\":2,\"purse_at_open\":\"1000000\",\"bounty_bps\":500,\"docket_cap_bps\":{},\"available\":{},\"owed\":{}}}",
+                list(runs.iter().map(run_json)), cap, q(avail), list(o[..2].iter().map(|x| q(x)))
+            ));
+        }
+        out.push(format!("\"bounties\":{}", list(bv)));
+        // shares
+        let sv = [(100u64, 0u128, 0u64), (100, 100, 200), (100_000_000, 1_000_000_000, 0), (7, 3, 11)]
+            .iter()
+            .map(|(amt, sh, own)| format!("{{\"amount\":{},\"total_shares\":{},\"owned\":{},\"minted\":{}}}", q(amt), q(sh), q(own), q(shares_for(*amt, *sh, *own).unwrap())));
+        out.push(format!("\"shares_for\":{}", list(sv)));
+        let lv = [(50u128, 150u128, 300u64), (1, 3, 10), (0, 0, 5), (1u128 << 100, 1u128 << 101, u64::MAX), (u128::MAX / 3, u128::MAX, 999_999_999_999)]
+            .iter()
+            .map(|(sh, tot, own)| format!("{{\"shares\":{},\"total_shares\":{},\"owned\":{},\"lamports\":{}}}", q(sh), q(tot), q(own), q(lamports_for(*sh, *tot, *own))));
+        out.push(format!("\"lamports_for\":{}", list(lv)));
+        // records
+        let mut rec = Record::fresh();
+        for (t, s) in [(TIER_CLEAN, 3u64), (TIER_BENT_LIED, 4), (TIER_FALSE_REPORT, 4), (TIER_FLAGGED, 5), (TIER_VOID, 6)] {
+            rec.add(t, s);
+        }
+        let checks = [(4u64, 2_500u16, 9u64), (5, 10_000, 9), (4, 2_499, 9), (4, 2_500, 2)]
+            .iter()
+            .map(|(m, b, sr)| format!("{{\"min_runs\":{},\"max_taken_bps\":{},\"since_round\":{},\"result\":{}}}", q(m), b, q(sr), record_check(&rec, *m, *b, *sr)));
+        out.push(format!(
+            "\"record\":{{\"adds\":[[1,\"3\"],[6,\"4\"],[4,\"4\"],[2,\"5\"],[7,\"6\"]],\"record\":{{\"start_round\":{},\"runs\":{},\"clean\":{},\"taken\":{},\"lied\":{}}},\"checks\":{}}}",
+            q(rec.start_round), q(rec.runs), q(rec.clean), q(rec.taken), q(rec.lied), list(checks)
+        ));
+        format!("{{\n{}\n}}\n", out.join(",\n"))
+    }
+
+    #[test]
+    fn vectors_match_the_file() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../test/vectors.json");
+        let v = vectors();
+        if std::env::var("IA_WRITE_VECTORS").is_ok() {
+            std::fs::write(path, &v).unwrap();
+        }
+        let have = std::fs::read_to_string(path).unwrap_or_default();
+        assert!(have == v, "test/vectors.json is stale: IA_WRITE_VECTORS=1 cargo test --lib vectors");
     }
 }

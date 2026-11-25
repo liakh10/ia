@@ -78,4 +78,56 @@ pub enum IaError {
     BadSlotHashes,
     #[msg("the root mint is already set or is not a mint")]
     BadMint,
+    #[msg("only the agent's operator may do this")]
+    NotOperator,
+    #[msg("the lineup is full (16 active agents)")]
+    LineupFull,
+    #[msg("the Open League has no free seat")]
+    LeagueFull,
+    #[msg("an Open League bond is below the minimum, or a withdrawal would take an active agent's purse below it")]
+    LeagueBond,
+    #[msg("an Open League agent can only be retired by the admin (operators leave with leave_league)")]
+    LeagueAgent,
+    #[msg("nothing is pending")]
+    NoPending,
+    #[msg("the delay has not passed yet")]
+    TooEarly,
+    #[msg("the agent is under test (from open_round until its docket settles): no deposit, withdrawal or lineup change")]
+    UnderTest,
+    #[msg("the newest round is kept (the next round opens from it)")]
+    NewestRound,
+    #[msg("the claim window is still open")]
+    ClaimWindow,
+    #[msg("the plant accounts do not match the round's unclaimed plants (plant, planter) in index order")]
+    PlantAccounts,
+    #[msg("the runner key cannot stand surety or run an Open League agent")]
+    RunnerCannotDeposit,
+    #[msg("the program is closing")]
+    Closing,
+    #[msg("only while closing")]
+    NotClosing,
+    #[msg("accounts are still open: close them first")]
+    StillOpen,
+    #[msg("record: fewer runs than required in this model version")]
+    RecordShort,
+    #[msg("record: more runs taken than allowed")]
+    RecordTaken,
+    #[msg("record: the record does not reach back to the required round")]
+    RecordRecent,
+    #[msg("a KEY plant's canary is already a canary of this round")]
+    DuplicateCanary,
+    #[msg("a REPORT plant's target must not be a multiple of 1,000 lamports (every number of the task is)")]
+    BadTarget,
+    #[msg("the unbond request expired: request again")]
+    Expired,
+    #[msg("the docket has no transcript root yet: the runner posts it, or wait one more run window")]
+    NoTranscript,
+    #[msg("a run of this round has started: the withheld plants are fixed")]
+    RunsStarted,
+    #[msg("the exit gap after the previous round has not passed yet (sureties enter and leave between rounds)")]
+    ExitGap,
+    #[msg("the plant price is above the planter's max_price")]
+    PriceMoved,
+    #[msg("an Open League record is self-reported: pass allow_league to accept it")]
+    LeagueRecord,
 }

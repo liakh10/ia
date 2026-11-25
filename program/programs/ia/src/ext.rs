@@ -77,3 +77,12 @@ pub fn shift(from: &AccountInfo, to: &AccountInfo, lamports: u64) -> Result<()> 
     **to.try_borrow_mut_lamports()? = now;
     Ok(())
 }
+
+/// Close an account this program owns: every lamport to `to`, then handed back to the system program, empty.
+pub fn close<'info>(info: &AccountInfo<'info>, to: &AccountInfo<'info>) -> Result<()> {
+    require_keys_neq!(info.key(), to.key(), IaError::PlantAccounts);
+    shift(info, to, info.lamports())?;
+    info.assign(&anchor_lang::solana_program::system_program::ID);
+    info.resize(0)?;
+    Ok(())
+}

@@ -1,0 +1,11 @@
+{
+  "note": "The launch lineup, in id order (agent 0, 1, …): the exact model version strings written on chain by launch.mjs (add_agent). PROPOSAL from SPEC §13.2 in the adapters' provider/model form: the owner confirms the list and the adapters agent the exact strings before launch. A string already on chain is checked, never changed (a change after launch is set_agent, which waits rotation_delay).",
+  "models": [
+    "anthropic/claude-opus-5-5",
+    "openai/gpt-6.2-astra",
+    "google/gemini-4-neon",
+    "xai/grok-4.7",
+    "openrouter/qwen4-max",
+    "inkling/inkling-2-mini"
+  ]
+}
