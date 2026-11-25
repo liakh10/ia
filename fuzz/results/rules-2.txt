@@ -1,0 +1,2 @@
+rules fuzz · seed 2 · 20000 cases · 1230708 checks · tiers seen VOID 3839 CLEAN 3190 FLAGGED 757 INCOMPLETE 12969 FALSE_REPORT 5517 BENT 8887 BENT_LIED 3894 · cap bound in 1875 · max deposit dilution 2585731569 lamports · R9: deposits overflow after 3 purse-to-1-lamport events · failures 0
+model check · 1000 vectors · 27769 comparisons · mismatches 0

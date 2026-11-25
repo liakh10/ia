@@ -1,0 +1,13 @@
+[package]
+name = "ia-rules-fuzz"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Property tests of ia's rules.rs (CONTRACT §3–§5). fuzz/rules.sh builds this crate inside the scratchpad snapshot, where the path
+# below is rewritten to the snapshot's programs/ia; it never builds in ia/program.
+[dependencies]
+ia = { path = "../../program/programs/ia", default-features = false, features = ["no-entrypoint"] }
+anchor-lang = "1.2.0"
+
+[workspace]
