@@ -87,8 +87,10 @@ export declare function settleDocketInstruction(a: {
     payer: AddressLike;
     programId?: string;
 }): Promise<Instruction>;
+/** `lineup`: the round's lineup ids in order (Round.lineup): they are released from test, so they are passed writable. */
 export declare function closeEmptyRoundInstruction(a: {
     seq: bigint | number;
+    lineup: number[];
     programId?: string;
 }): Promise<Instruction>;
 /** A session key's act (the runner's and an Open League operator's tool). `signers`: extra signer keys (a canary). */

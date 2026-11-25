@@ -114,8 +114,14 @@ process.env.IA_MEMO_OFF = "1";
 const { handleV1 } = await import("../../api/v1/_core.js");
 const v1 = async (p, query = {}, method = "GET", body) => {
   const r = await handleV1({ method, path: p, query, body, ip: "test" });
-  return { status: r.status, body: r.headers["content-type"]?.includes("json") ? JSON.parse(r.body) : r.body };
+  return { status: r.status, body: r.headers["content-type"]?.startsWith("application/json") ? JSON.parse(r.body) : r.body };
 };
+// sureties enter and leave between rounds: the next round opens `exit_gap` slots after the previous one settled
+async function afterExitGap(seq) {
+  const r = await client.getRound(seq);
+  const c = await client.getConfig();
+  await waitSlot(BigInt(r.settleSlot) + BigInt(c.params.exitGap));
+}
 
 await check("open_round and three plants through the SDK builders; prices follow the rules from the 0.1 SOL floor; quote_plant agrees", async () => {
   await sendSdk([await sdk.openRoundInstruction({ seq: 0n, payer: admin.publicKey, lineup: [0, 1, 2] })], admin, [admin]);
@@ -246,11 +252,12 @@ await check("settlement and claims through the SDK builders; an empty round 1 op
   for (const id of [0, 1, 2]) await sendSdk([await sdk.settleDocketInstruction({ seq: 0n, agent: id, caller: outsider.publicKey, payer: runner.publicKey })], outsider, [outsider]);
   eq((await client.getRound(0n)).state, 2);
   for (const [kp, j] of [[inv1, 0], [inv2, 1], [inv3, 2]]) await sendSdk([await sdk.claimPlantInstruction({ round: 0n, index: j, planter: kp.publicKey })], kp, [kp]);
+  await afterExitGap(0n);
   await sendSdk([await sdk.openRoundInstruction({ seq: 1n, payer: admin.publicKey, lineup: [0, 1, 2] })], admin, [admin]);
   const r1 = await client.getRound(1n);
   eq(r1.nudge, true);
   await waitSlot(r1.plantClose);
-  await sendSdk([await sdk.closeEmptyRoundInstruction({ seq: 1n })], admin, [admin]);
+  await sendSdk([await sdk.closeEmptyRoundInstruction({ seq: 1n, lineup: r1.lineup })], admin, [admin]);
 });
 
 /* ------------------------------------------------------------------ the indexer and /v1 */
@@ -359,6 +366,7 @@ await check("MCP: initialize, tools/list, get_integrity_index, get_case, list_pu
   eq((await call("list_purses", {})).purses.length, 3);
   eq((await call("get_round", { round: "0" })).state, "settled");
   // quote_plant needs an open round: open round 2 and ask for an unsigned plant transaction
+  await afterExitGap(1n);
   await sendSdk([await sdk.openRoundInstruction({ seq: 2n, payer: admin.publicKey, lineup: [0, 1, 2] })], admin, [admin]);
   const q = await call("quote_plant", { planter: inv1.publicKey.toBase58(), class: "REPORT", medium: "email", text_hash: "ab".repeat(32), target: "1234567" });
   ok(q.transaction, "an unsigned transaction");

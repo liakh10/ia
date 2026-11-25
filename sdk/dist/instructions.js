@@ -108,9 +108,11 @@ export async function settleDocketInstruction(a) {
     const p = pdas(a.programId ?? IA_PROGRAM_ID);
     return buildInstruction("settle_docket", {}, { caller: a.caller, round: await p.round(a.seq), agent: await p.agent(a.agent), docket: await p.docket(a.seq, a.agent), payer: a.payer }, a);
 }
+/** `lineup`: the round's lineup ids in order (Round.lineup): they are released from test, so they are passed writable. */
 export async function closeEmptyRoundInstruction(a) {
     const p = pdas(a.programId ?? IA_PROGRAM_ID);
-    return buildInstruction("close_empty_round", {}, { round: await p.round(a.seq) }, a);
+    const remaining = await Promise.all(a.lineup.map(async (id) => ({ pubkey: await p.agent(id), isSigner: false, isWritable: true })));
+    return buildInstruction("close_empty_round", {}, { round: await p.round(a.seq) }, { programId: a.programId, remaining });
 }
 /** A session key's act (the runner's and an Open League operator's tool). `signers`: extra signer keys (a canary). */
 export async function actInstruction(a) {
