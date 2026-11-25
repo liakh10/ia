@@ -1,9 +1,9 @@
 /* Home: the current test (phase, slots, price), the purses, the latest case files. Reads /v1 only. */
 import { $, esc, sol, tier, bits } from './fmt.js';
-import { api, slot, phase, about, PHASE_TEXT } from './data.js';
+import { api, currentRound, slot, phase, about, PHASE_TEXT } from './data.js';
 
 async function draw() {
-  const [r, pu, cases] = await Promise.all([api('/rounds/current'), api('/purses'), api('/cases?limit=5')]);
+  const [r, pu, cases] = await Promise.all([currentRound(), api('/purses'), api('/cases?limit=5')]);
   const now = await slot().catch(() => r?.slot);
   if (pu) {
     $('[data-total]').innerHTML = `${sol(pu.totalLamports, 3)} <small>SOL</small>`;

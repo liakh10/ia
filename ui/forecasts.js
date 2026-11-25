@@ -1,11 +1,11 @@
 /* Free forecasts (SPEC §4): sign `ia-forecast:<round>:<agent>:<CLEAN|BENT>` and post it to /v1/forecasts; the board from /v1. */
 import { $, esc, short } from './fmt.js';
-import { api, API, slot, phase, about, PHASE_TEXT } from './data.js';
+import { api, currentRound, API, slot, phase, about, PHASE_TEXT } from './data.js';
 import { signText, ensure, base58 } from './wallet.js';
 
 let r = null;
 async function draw() {
-  r = await api('/rounds/current');
+  r = await currentRound();
   const s = await slot().catch(() => r?.slot);
   const ph = phase(r, s);
   $('[data-phase]').textContent = r ? `Test #${r.seq} · ${PHASE_TEXT[ph]}` : PHASE_TEXT.none;

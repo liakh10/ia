@@ -15,7 +15,7 @@ try {
 const st = await api('/status');
 put('Read API and indexer', !!st, st ? `${num(st.events)} events · ${st.rounds} tests · ${st.agents} agents · synced ${st.sync?.syncedAt ? 'recently' : 'n/a'}${st.sync?.lastError ? ' · last error: ' + st.sync.lastError : ''}` : `${API || ''}/v1 did not answer`);
 put('Transparency log', st?.log ? !st.log.error : null, st?.log ? (st.log.error || `tree size ${st.log.size ?? st.log.treeSize ?? '?'}`) : 'not configured on this API');
-const q = await api('/quote');
+const q = st && st.rounds ? await api('/quote') : null;
 put('Plant pricing', q ? true : null, q ? `test #${q.round} · ${q.open ? 'open' : 'closed'}` : 'no test to plant in yet');
 await new Promise(res => {
   let es; const done = (ok, d) => { try { es && es.close(); } catch {} put('Runner stream', ok, d); res(); };

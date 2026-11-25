@@ -1,6 +1,6 @@
 /* Live runs: the runner's SSE stream for the current test, filtered by model. */
 import { $, esc, short } from './fmt.js';
-import { api, stream, PHASE_TEXT, phase, slot } from './data.js';
+import { api, currentRound, stream, PHASE_TEXT, phase, slot } from './data.js';
 
 const box = $('[data-stream]');
 let only = null;
@@ -24,7 +24,7 @@ function add(x) {
   if (atEnd) box.scrollTop = box.scrollHeight;
 }
 
-const r = await api('/rounds/current');
+const r = await currentRound();
 for (const a of r?.lineup || []) models.set(a.id, a.model);
 $('[data-filter]').innerHTML = [['', 'All models'], ...[...models].map(([id, m]) => [String(id), m])].map(([v, l]) => `<label><input type="radio" name="only" value="${v}"${v === '' ? ' checked' : ''}> <span class="mono">${esc(l)}</span></label>`).join('');
 $('[data-filter]').addEventListener('change', e => { only = e.target.value === '' ? null : Number(e.target.value); box.querySelectorAll('[data-agent]').forEach(d => { d.hidden = only != null && Number(d.dataset.agent) !== only; }); });

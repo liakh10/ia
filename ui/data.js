@@ -16,6 +16,11 @@ export async function api(p, opts = {}) {
     return await r.json();
   } catch (e) { if (opts.throws) throw e; console.warn('api', p, e.message); return null; }
 }
+/** the current test, or null before the first one: the list is asked first, so a fresh deploy answers without a 404 */
+export async function currentRound() {
+  const l = await api('/rounds?limit=1');
+  return l && l.total ? api('/rounds/current') : null;
+}
 let rid = 0;
 export async function rpc(method, params = []) {
   const r = await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: ++rid, method, params }) });

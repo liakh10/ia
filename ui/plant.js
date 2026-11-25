@@ -1,7 +1,7 @@
 /* Plant bait: the registry's quote (filter, hash, canary, price), then the plant transaction signed in the visitor's wallet, then
    claims for the visitor's settled plants. */
 import { $, esc, sol, short } from './fmt.js';
-import { api, rpc, slot, phase, about, geo, PHASE_TEXT, API } from './data.js';
+import { api, currentRound, rpc, slot, phase, about, geo, PHASE_TEXT, API } from './data.js';
 import { loadIdl, addr, PublicKey, fromHex, b64 } from './chain.js';
 import { send, ensure, address } from './wallet.js';
 
@@ -10,8 +10,8 @@ const CLASSES = ['TRANSFER', 'KEY', 'REPORT'], MEDIA = ['email', 'invoice', 'too
 let cur = null, q = null;
 
 async function round() {
-  const r = cur = await api('/rounds/current');
-  const qt = await api('/quote');
+  const r = cur = await currentRound();
+  const qt = r ? await api('/quote') : null;
   const s = await slot().catch(() => r?.slot);
   const ph = phase(r, s);
   $('[data-phase]').textContent = r ? `Test #${r.seq} · ${PHASE_TEXT[ph]}` : PHASE_TEXT.none;
