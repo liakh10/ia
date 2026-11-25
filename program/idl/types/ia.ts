@@ -322,7 +322,7 @@ export type Ia = {
     {
       "name": "closeAgent",
       "docs": [
-        "Closing, once no surety is left: the agent account to whoever paid its rent (the dev for a house agent, the operator for an",
+        "Closing, once every surety account of it is closed: the agent account to whoever paid its rent (the dev for a house agent, the operator for an",
         "Open League agent), with what is left in it (orphan fees, share rounding dust)."
       ],
       "discriminator": [
@@ -3789,6 +3789,13 @@ export type Ia = {
             "name": "shareEpoch",
             "docs": [
               "Bumped when a wiped-out purse resets its shares: surety shares of an older epoch count as 0."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "suretiesOpen",
+            "docs": [
+              "Surety accounts of this agent still open (any shares, any epoch): `close_agent` needs 0, so none can outlive it (audit IA-23)."
             ],
             "type": "u32"
           }

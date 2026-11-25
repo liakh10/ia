@@ -630,7 +630,7 @@ await check('apply_runner: after the delay anyone applies it; the old runner key
 });
 
 /* ------------------------------------------------------------------ closing */
-await check('an unbond request expires one delay after it matures; closing: no plant, round, deposit, registration or run from then on; the open round settles at once (bounties straight to planters); every surety paid out; every account closed to whoever paid it; the program owns nothing', async () => {
+await check('an unbond request expires one delay after it matures; closing: no plant, round, deposit, registration or run from then on; the open round settles at once (bounties straight to planters); every surety paid out (an agent closes only after all its surety accounts); every account closed to whoever paid it; the program owns nothing', async () => {
   await refuses(program.methods.withdraw().accountsPartial(suretyAcc(suretyC, 2)).signers([suretyC]).rpc(), 'Expired');
   await refuses(program.methods.closeBegin().accountsPartial({ admin: outsider.publicKey, config: CONFIG }).signers([outsider]).rpc(), 'NotAdmin');
   await refuses(program.methods.closeConfig().accountsPartial({ admin: admin.publicKey, config: CONFIG, treasury: TREASURY, runnerFund: FUND, dev: dev.publicKey }).rpc(), 'NotClosing');
@@ -646,6 +646,10 @@ await check('an unbond request expires one delay after it matures; closing: no p
   const i0 = await lam(inv1.publicKey);
   await reap(3, [[plantPda(3, 0), inv1.publicKey]]);
   ok(await lam(inv1.publicKey) > i0, 'plant rent back at once, no claim window');
+  // an agent closes only after every surety account of it (agent 1: 0 shares left, suretyB's account still open; audit IA-23)
+  const a1c = await F.agent.fetch(agentPda(1));
+  eq(a1c.shares, 0); eq(a1c.suretiesOpen, 1);
+  await refuses(program.methods.closeAgent().accountsPartial({ admin: admin.publicKey, config: CONFIG, agent: agentPda(1), recipient: dev.publicKey }).rpc(), 'StillOpen');
   // every surety paid its share and its rent
   const a0 = await F.agent.fetch(agentPda(0));
   const sA = await lam(suretyA.publicKey);
@@ -654,6 +658,7 @@ await check('an unbond request expires one delay after it matures; closing: no p
     await program.methods.closeSurety().accountsPartial({ admin: admin.publicKey, config: CONFIG, agent: agentPda(s.account.agent), surety: s.publicKey, owner }).rpc();
   }
   ok(await lam(suretyA.publicKey) - sA >= big(a0.assets) - big(a0.orphan), 'agent 0\'s surety paid what it owns');
+  for (const a of await F.agent.all()) eq(a.account.suretiesOpen, 0, 'no surety left of agent ' + a.account.id);
   for (const a of await F.agent.all()) {
     const to = a.account.kind === 0 ? dev.publicKey : a.account.operator;
     await refuses(program.methods.closeAgent().accountsPartial({ admin: admin.publicKey, config: CONFIG, agent: a.publicKey, recipient: outsider.publicKey }).rpc(), 'BadPayer');

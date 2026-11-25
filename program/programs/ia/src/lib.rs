@@ -273,6 +273,8 @@ pub struct Agent {
     pub free_since: u64,
     /// Bumped when a wiped-out purse resets its shares: surety shares of an older epoch count as 0.
     pub share_epoch: u32,
+    /// Surety accounts of this agent still open (any shares, any epoch): `close_agent` needs 0, so none can outlive it (audit IA-23).
+    pub sureties_open: u32,
 }
 
 impl Agent {
@@ -832,6 +834,7 @@ pub mod ia {
         s.owner = a.operator;
         s.shares = bond as u128;
         s.bump = ctx.bumps.surety;
+        a.sureties_open = 1;
         c.agent_count += 1;
         c.active_count += 1;
         c.league_active += 1;
@@ -1414,6 +1417,7 @@ pub mod ia {
             s.owner = owner;
             s.bump = ctx.bumps.surety;
             s.share_epoch = ag.share_epoch;
+            ag.sureties_open += 1;
         }
         s.sync(ag.share_epoch);
         s.shares = s.shares.checked_add(minted).ok_or(IaError::Overflow)?;
@@ -1541,18 +1545,19 @@ pub mod ia {
         let lamports = lamports_for(s.shares, ag.shares, ag.owned());
         ag.shares -= s.shares;
         ag.assets -= lamports;
+        ag.sureties_open -= 1;
         ext::shift(&ag.to_account_info(), &ctx.accounts.owner.to_account_info(), lamports)?;
         emit!(SuretyMoved { agent: ag.id, owner: s.owner, kind: 3, lamports, shares: s.shares, assets_after: ag.assets });
         Ok(())
     }
 
-    /// Closing, once no surety is left: the agent account to whoever paid its rent (the dev for a house agent, the operator for an
+    /// Closing, once every surety account of it is closed: the agent account to whoever paid its rent (the dev for a house agent, the operator for an
     /// Open League agent), with what is left in it (orphan fees, share rounding dust).
     pub fn close_agent(ctx: Context<CloseAgent>) -> Result<()> {
         let c = &mut ctx.accounts.config;
         require!(c.closing, IaError::NotClosing);
         let a = &ctx.accounts.agent;
-        require!(a.shares == 0, IaError::StillOpen);
+        require!(a.shares == 0 && a.sureties_open == 0, IaError::StillOpen);
         require!(a.busy == 0, IaError::UnderTest);
         let to = if a.kind == KIND_HOUSE { c.dev } else { a.operator };
         require_keys_eq!(ctx.accounts.recipient.key(), to, IaError::BadPayer);

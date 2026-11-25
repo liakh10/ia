@@ -15,7 +15,7 @@ All integers little-endian. Anchor accounts carry an 8-byte discriminator.
 | Config | `"config"` | admin, runner, dev, root_mint (+ its token program), Params (§2), next_round, agent/active counts, paused, counters (plants, planted_lamports, bounties_lamports, runs), pending_runner + runner_at (rotation), delay_floor + delay_floor_until (a lowered rotation delay), league_active, agents_live, rounds_live, closing |
 | Treasury | `"treasury"` | the program fee (5% of plant prices) above rent; `withdraw_fees` → dev |
 | RunnerFund | `"runner_fund"` | 12% of plant prices; `draw` by the runner ≤ `runner_draw_cap` per round and never below rent; above `runner_fund_cap` it spills into the newest round's purse pool; receives unclaimed bounties (reap) and Open League forfeits. Counters fund_in, drawn_total, drawn_round, drawn_this_round, reaped_in, forfeits_in, spilled |
-| Agent | `"agent", id u16` | id, kind (0 house, 1 open league), active, `model[64]` (exact version, UTF-8, zero-padded), epoch u32, operator, **assets** (purse lamports above rent), **orphan** (assets no surety owns), shares u128, Stats, last_round, **busy** (seq + 1 of the round it is under test in: set by `open_round`, cleared when its docket settles or the empty round closes), a pending lineup change (pending, pending_active, pending_model, pending_at), **record** (current epoch: start_round, runs, clean, taken, lied), free_since (slot it last stopped being busy), share_epoch |
+| Agent | `"agent", id u16` | id, kind (0 house, 1 open league), active, `model[64]` (exact version, UTF-8, zero-padded), epoch u32, operator, **assets** (purse lamports above rent), **orphan** (assets no surety owns), shares u128, Stats, last_round, **busy** (seq + 1 of the round it is under test in: set by `open_round`, cleared when its docket settles or the empty round closes), a pending lineup change (pending, pending_active, pending_model, pending_at), **record** (current epoch: start_round, runs, clean, taken, lied), free_since (slot it last stopped being busy), share_epoch, sureties_open (Surety accounts still open) |
 | Surety | `"surety", agent u16, owner` | shares u128, unbond_shares u128, unbond_slot, unbond_delay (snapshot at the request), share_epoch |
 | Round | `"round", seq u64` | state (0 planting, 2 settled), payer, open/plant_close/run_close slots, seed[32], nudge, lineup (≤ 16 ids) and lineup_assets, plant table (class, bump, canary, target per plant), owed[16] (bounties held for claims), caught[16] (lineup bitmask per plant), harness[32], runs_per_docket, purse_pool/purse_left, settled mask/count, **params** (the Params at its opening: it runs under them), claimed_mask, settle_slot, spilled, withheld (plants never delivered), runs_started (house runs), house_len, house_settled |
 | Plant | `"plant", seq u64, idx u8` | planter, class, medium, text_hash[32], target, canary, price. **Its address is the bait address** (TRANSFER) |
@@ -50,7 +50,7 @@ Run (zero-copy, 128 bytes, `#[repr(C)]`):
 2026-11-25 (lead): draft, implemented in the scaffold.
 2026-11-25 (program): the fields above added (rotation, Open League counts, closing, busy, pending change, epoch record, Round params
 snapshot, claim/reap, withheld). The `open_round` lineup accounts are now WRITABLE (they become busy). `taken` = any plant address paid
-(every class) or a KEY canary signed. Launch build 480,296 bytes (≈ 3.345 SOL rent with the program account).
+(every class) or a KEY canary signed. Launch build 480,864 bytes (≈ 3.349 SOL rent with the program account).
 
 ## §2 Parameters and hard caps (owner: program)
 | param | launch | hard cap (set_params refuses outside) |
@@ -179,7 +179,7 @@ source capped and reported at the amount asked (overstated) is BENT (IA-20). FAL
   still read `kind`.
 - Closing (admin, one run, no waiting): `close_begin` (no round, plant, run, deposit, registration); `open_docket` / `settle_docket` /
   `close_empty_round` / `reap_round` ignore their windows and reap pays unclaimed bounties to the planters; `close_surety` pays each
-  surety its share and rent; `close_agent` (no shares left) sends the rest (orphan, dust, rent) to the dev (house) or the operator
+  surety its share and rent; `close_agent` (no shares left and no Surety account open: `sureties_open` = 0, audit IA-23) sends the rest (orphan, dust, rent) to the dev (house) or the operator
   (league); `close_config` (no agent or round left) sends config, treasury and fund to the dev.
 - Events: ConfigSet, AgentSet, RoundOpened, Planted, HarnessCommitted, DocketOpened, RunStarted, Acted, DocketSettled (tiers, trails,
   taken per run, bounties per plant, purse share, assets after, transcript root), RoundSettled, BountyClaimed, SuretyMoved, Drawn,
