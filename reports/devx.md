@@ -59,7 +59,8 @@ Open League, `reap_round`, `require_record`).
 
 ## Open items
 
-- The program's IDL is still moving (uncommitted at the time of the run). The SDK is IDL-driven: `cd sdk && npm run sync-idl && npm run
+- Re-run on the committed program a9eca56: the SDK's IDL equals the committed one (no change), SDK 13/13, API/MCP 8/8, local 14/14.
+  The SDK is IDL-driven: `cd sdk && npm run sync-idl && npm run
   build` after each program change; the local suite refuses to run when the SDK's IDL differs from the build's.
 - Production wiring (lead): `IA_LOG_KEYS` (the log's public key), `SOLANA_RPC`, `IA_LOG_URL`, `IA_REGISTRY_URL`, `BLOB_READ_WRITE_TOKEN`,
   `CRON_SECRET` and a cron on `/api/v1/cron` (the index's only Blob writer); `api/v1/cron.js` in `vercel.json` functions.
