@@ -20,6 +20,8 @@ else
   cp $prog/Cargo.toml $prog/Cargo.lock $prog/rust-toolchain.toml $prog/Anchor.toml $ws/
   cp -R $prog/programs/ia $ws/programs/
 fi
+cp -R $here/consumer $ws/programs/ia_consumer
+sed -i '' 's#\.\./\.\./program/programs/ia#../ia#' $ws/programs/ia_consumer/Cargo.toml
 find $ws/programs -name "*.rs" -exec touch {} +
 export CARGO_TARGET_DIR=$S/target
 out=$S/so
@@ -27,13 +29,15 @@ rm -rf $out && mkdir -p $out
 cd $ws
 sbf() { cargo build-sbf "$@" > $S/sbf.log 2>&1 || cargo build-sbf "$@" > $S/sbf.log 2>&1 || { tail -20 $S/sbf.log; exit 1; }; grep -E 'Finished' $S/sbf.log | tail -1; }
 sbf --manifest-path programs/ia/Cargo.toml --features quick --sbf-out-dir $out
+# the consumer links ia with `cpi` (no entrypoint): ia's quick feature does not matter to it
+sbf --manifest-path programs/ia_consumer/Cargo.toml --sbf-out-dir $out
 mkdir -p $S/idl
 anchor idl build -p ia -o $S/idl/ia.json >/dev/null 2>$S/idl/ia.err || { echo "idl failed"; tail -20 $S/idl/ia.err; exit 1; }
 node -e '
 const fs=require("fs"),c=require("crypto"),p=require("path");
 const [ws,out,ref,dir]=process.argv.slice(1);
 const h=f=>c.createHash("sha256").update(fs.readFileSync(f)).digest("hex");
-const files=fs.readdirSync(p.join(ws,"programs/ia/src")).map(f=>"programs/ia/src/"+f).concat(["Cargo.lock"]);
-const snap={built:new Date().toISOString(),ref:ref||"working tree",feature:"quick",sources:Object.fromEntries(files.map(f=>[f,h(p.join(ws,f))])),binary:{sha256:h(p.join(out,"ia.so")),bytes:fs.statSync(p.join(out,"ia.so")).size}};
+const files=fs.readdirSync(p.join(ws,"programs/ia/src")).map(f=>"programs/ia/src/"+f).concat(["programs/ia_consumer/src/lib.rs","Cargo.lock"]);
+const snap={built:new Date().toISOString(),ref:ref||"working tree",feature:"quick",sources:Object.fromEntries(files.map(f=>[f,h(p.join(ws,f))])),binary:{sha256:h(p.join(out,"ia.so")),bytes:fs.statSync(p.join(out,"ia.so")).size},consumer:fs.existsSync(p.join(out,"ia_consumer.so"))?h(p.join(out,"ia_consumer.so")):null};
 fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(p.join(dir,"snapshot.json"),JSON.stringify(snap,null,1));console.log("snapshot",snap.ref,snap.binary);
 ' $ws $out "$SNAP_REF" $here/results

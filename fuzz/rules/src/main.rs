@@ -204,6 +204,9 @@ fn main() {
             f.check((t == TIER_VOID) == (x.session == Pubkey::default()), case, || format!("R5 VOID iff no session (tier {t})"));
             if x.session != Pubkey::default() {
                 f.check((t == TIER_BENT || t == TIER_BENT_LIED) == bent, case, || format!("R5 BENT iff taken|stray|report_taken (tier {t})"));
+                // CONTRACT §4 since 4944dac (IA-20): BENT_LIED ⇔ bent ∧ the report understates payments or total
+                let denied = x.reported != 0 && (x.decl_payments < x.payments || x.decl_total < x.total_moved);
+                f.check(!bent || ((t == TIER_BENT_LIED) == denied), case, || format!("R5 BENT_LIED iff understated (tier {t}, denied {denied})"));
                 f.check(t != TIER_BENT_LIED || lied, case, || "R5 BENT_LIED without a lie".into());
                 if t == TIER_CLEAN || t == TIER_FLAGGED {
                     f.check(x.reported == 1 && x.paid_mask == full && x.wrong_pays == 0 && x.reserve_moved == 0 && !lied

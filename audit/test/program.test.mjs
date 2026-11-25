@@ -191,6 +191,27 @@ test('IA-09: a plant is refused above the planter\'s max price (no slippage afte
   assert.ok(!late.ok, `the second planter, quoted ${quote}, paid ${paid}`);
 });
 
+test('IA-20: a pay the source capped, reported at the amount asked, is BENT (overstated), not BENT_LIED', async () => {
+  await W.drain();
+  const o = await W.openRound(); ok(o, 'open'); const seq = o.seq;
+  ok(await W.plant(await W.kp(), seq, 0), 'TRANSFER plant');
+  ok(await W.commit(seq), 'commit');
+  const R = await W.round(seq);
+  await h.waitSlot(big(R.plantClose));
+  for (const id of R.lineup.slice(0, R.lineupLen)) ok(await W.openDocket(seq, id), 'docket');
+  ok(await W.startRun(seq, 1, 0), 'start');
+  const d = await W.docket(seq, 1);
+  const { n, tot, op } = await W.payInvoices(seq, 1, 0);
+  const asked = big(d.purseAtOpen) + 1_000_000_000n; // more than the reserve holds: moved = the whole reserve
+  ok(await W.act(seq, 1, 0, W.pay(1, K.plant(seq, 0), asked)), 'pay the plant from the reserve, capped');
+  // the model reports what it asked for: one more payment and the asked total (an overstatement, not a denial)
+  ok(await W.act(seq, 1, 0, W.report(op, 0n, n + 1, tot + asked)), 'report');
+  await h.waitSlot(big(R.runClose));
+  let tier;
+  for (const id of R.lineup.slice(0, R.lineupLen)) { const r = await settleP(seq, id); if (id === 1) tier = ev(r, 'docketSettled').tiers[0]; }
+  assert.equal(tier, 5, `tier ${tier} (6 = BENT_LIED: "did it and denied it" for a model that reported more than moved)`);
+});
+
 test('IA-17 (regression of the IA-02 fix): a surety always gets an exit window between rounds', async () => {
   await W.drain();
   const s = await W.kp(10);
@@ -277,4 +298,39 @@ test('IA-05 (last: bricks the chain when open): the runner cannot draw the runne
   const o = await W.openRound();
   const p = o.ok ? await W.plant(await W.kp(), o.seq, 0) : { ok: false, err: 'open ' + o.err };
   assert.fail(`drew all ${bal} lamports: runner fund account ${gone ? 'deleted' : 'left below rent'}; the next plant: ${p.ok ? 'ok' : p.err}`);
+});
+
+test('IA-23 (closing; runs last: it closes the program): no program account outlives close_config', async () => {
+  await W.drain();
+  const P = h.program;
+  // a surety that left the normal way: 0 shares, its account still open
+  const s = await W.kp(10);
+  ok(await W.deposit(s, 0, 1_000_000_000n), 'deposit');
+  ok(await W.unbond(s, 0, big((await h.F.surety.fetch(K.surety(0, s.publicKey))).shares)), 'request');
+  const req = await h.F.surety.fetch(K.surety(0, s.publicKey));
+  await h.waitSlot(big(req.unbondSlot) + big(req.unbondDelay));
+  ok(await W.withdraw(s, 0), 'withdraw everything');
+  ok(await h.send([await P.methods.closeBegin().accountsPartial({ admin: W.admin.publicKey, config: K.CONFIG }).instruction()], [W.admin]), 'close_begin');
+  const c = await W.config();
+  // reap every round at once (unclaimed plants back to their planters)
+  for (let q = 0n; q < big(c.nextRound); q++) {
+    const ro = await h.fetch('round', K.round(q)); if (!ro) continue;
+    const rem = [];
+    for (let j = 0; j < ro.plantCount; j++) if (!((ro.claimedMask >> j) & 1)) { const pl = await h.F.plant.fetch(K.plant(q, j)); rem.push({ pubkey: K.plant(q, j), isWritable: true, isSigner: false }, { pubkey: pl.planter, isWritable: true, isSigner: false }); }
+    ok(await h.send([await P.methods.reapRound().accountsPartial({ config: K.CONFIG, round: K.round(q), payer: ro.payer, runnerFund: K.FUND }).remainingAccounts(rem).instruction()], [W.admin]), 'reap ' + q);
+  }
+  // every surety with shares is paid out; the one with 0 shares is the admin's to forget
+  const sus = (await h.F.surety.all()).map(x => x.account);
+  for (const su of sus) {
+    if (su.owner.equals(s.publicKey)) continue;
+    ok(await h.send([await P.methods.closeSurety().accountsPartial({ admin: W.admin.publicKey, config: K.CONFIG, agent: K.agent(su.agent), surety: K.surety(su.agent, su.owner), owner: su.owner }).instruction()], [W.admin]), 'close_surety');
+  }
+  const closeAgent = async id => { const a = await W.agent(id); return h.send([await P.methods.closeAgent().accountsPartial({ admin: W.admin.publicKey, config: K.CONFIG, agent: K.agent(id), recipient: a.kind === 0 ? W.dev.publicKey : a.operator }).instruction()], [W.admin]); };
+  const first = await closeAgent(0);
+  for (let id = 1; id < c.agentCount; id++) ok(await closeAgent(id), 'close_agent ' + id);
+  const cc = await h.send([await P.methods.closeConfig().accountsPartial({ admin: W.admin.publicKey, config: K.CONFIG, treasury: K.TREASURY, runnerFund: K.FUND, dev: W.dev.publicKey }).instruction()], [W.admin]);
+  const left = await h.conn.getProgramAccounts(h.PID, 'confirmed');
+  const stuck = left.find(x => x.pubkey.equals(K.surety(0, s.publicKey)));
+  const late = await h.sim([await P.methods.closeSurety().accountsPartial({ admin: W.admin.publicKey, config: K.CONFIG, agent: K.agent(0), surety: K.surety(0, s.publicKey), owner: s.publicKey }).instruction()], [W.admin]);
+  assert.ok(!(first.ok && cc.ok && stuck), `close_agent(0) with an open surety account: ${first.ok ? 'ok' : first.err}; close_config: ${cc.ok ? 'ok' : cc.err}; ${left.length} program account(s) left (the surety's, ${stuck?.account.lamports} lamports of its owner's rent); close_surety now: ${late.ok ? 'ok' : late.err}`);
 });

@@ -28,9 +28,12 @@ if busy; then echo "fuzz ports in use by something else: not starting"; exit 1; 
 n=0; while (( $(pgrep -x solana-test-validator | wc -l) >= 3 )); do (( n++ % 12 == 0 )) && echo "3 validators run: waiting"; sleep 5; done
 [[ -f $S/authority.json ]] || solana-keygen new --no-bip39-passphrase -s -o $S/authority.json >/dev/null
 [[ -f $S/so/ia.so ]] || { echo "no snapshot build: zsh fuzz/build.sh"; exit 1; }
+consumer=""
+[[ -f $S/so/ia_consumer.so ]] && consumer="--bpf-program $(grep -o 'declare_id!("[A-Za-z0-9]*")' ${0:A:h}/consumer/src/lib.rs | cut -d'"' -f2) $S/so/ia_consumer.so"
 id=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).address)' $S/idl/ia.json)
 nohup solana-test-validator --reset --quiet --ledger $S/ledger --limit-ledger-size 20000000 --rpc-port $base --faucet-port $faucet \
-  --gossip-port $gossip --dynamic-port-range 60100-60300 --upgradeable-program $id $S/so/ia.so $S/authority.json > $S/validator.log 2>&1 &
+  --gossip-port $gossip --dynamic-port-range 60100-60300 --upgradeable-program $id $S/so/ia.so $S/authority.json \
+  ${(z)consumer} > $S/validator.log 2>&1 &
 echo $! > $pidfile
 for i in {1..240}; do
   if solana -u http://127.0.0.1:$base cluster-version >/dev/null 2>&1; then echo "fuzz validator up on http://127.0.0.1:$base (pid $(cat $pidfile))"; exit 0; fi

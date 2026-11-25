@@ -1,10 +1,10 @@
 # Internal Affairs: internal security review
 
-Status: **round 3, final for program `a9eca56`** (2026-11-25). Round 1 reviewed the scaffold `dc45f86`; round 2 the first fixes
-(uncommitted tree, `lib.rs` `fd7f6ec9…`, `fuzz/results/snapshot-round2.json`); round 3 the second fixes, then the commit `a9eca56`
-(built with `SNAP_REF=a9eca56`, hashes in `fuzz/results/snapshot.json`; its IDL is identical to `program/idl/ia.json`). **Every
-Critical, High and Medium code finding is fixed and re-tested: 19 of 19 proof tests pass.** What stays open is trust and disclosure
-(IA-13, IA-14) and four Low items.
+Status: **round 4, final for program `59a10c0`** (2026-11-25). Round 1 reviewed the scaffold `dc45f86`; rounds 2–3 the fixes up to
+`a9eca56`; round 4 fuzzed what was not reached before (runner rotation, `spill`, `require_record` through a CPI from a test consumer
+program, the whole closing path) and re-tested `4944dac` (IA-20, disclosures) and `59a10c0` (IA-23). Builds: `SNAP_REF=<commit> zsh
+fuzz/build.sh`, hashes in `fuzz/results/snapshot*.json`. **Every code finding of severity Low and above is fixed or disclosed and
+re-tested: 21 of 21 proof tests pass on `59a10c0`.** Open by decision: IA-14 (freeze the program or not, SPEC §13.6).
 Reviewer: the IA `audit` agent, independent of the builders. It edits none of the program, runner, registry or SDK code; each fix is made
 by the owner of that part and proven by the test named in its row.
 
@@ -13,6 +13,7 @@ by the owner of that part and proven by the test named in its row.
 | part | paths | what was done |
 |---|---|---|
 | on-chain program `ia` | `program/programs/ia/src/{lib,rules,ext,errors}.rs` | read line by line both rounds; every finding proven on a local validator |
+| test consumer (round 4) | `fuzz/consumer` (test-only program: careful and naive `require_record` callers, a fake ia) | written by the reviewer to exercise the CPI surface; never deployed outside the fuzz chain |
 | shared contract | `CONTRACT.md` §1–§5, §10; `SPEC.md` §3, §5, §6, §8, §9, §10 | read as the threat model |
 | runner sandbox (the only path from a model to the chain) | `runner/harness/{sandbox,chain,drive}.mjs`, `runner/lib/egress.mjs`, `runner/round.mjs` (withhold) | read for the sandbox escape surface only |
 | plant registry | `registry/src/registry.ts` (delivery, manifest, reveal) | read for delivery/withhold and reveal timing only |
@@ -65,23 +66,25 @@ by taking that plant, which is the product.
 | IA-09 | Medium | `plant` had no maximum price: a planter racing others paid up to 1.95× the quote (8 plants at +10%) | **fixed** (`max_price`, PriceMoved) | `IA-09` |
 | IA-10 | Medium | a deposit after the runs' public acts captured the round's fees risk-free | **fixed** (busy) | `IA-10` |
 | IA-11 | Medium | share math: shares exploded when a purse was drained to dust; `shares_for` overflowed after ~3 such events and `lamports_for` saturated (underpaid withdrawals) | **fixed** (256-bit `mul_div`, share-epoch reset) | `fuzz/rules` R9, R11 |
-| IA-12 | Low | the 1,000,000 $IA exemption is borrowable inside one transaction (transfer in, plant, transfer out) | open, accepted? | — |
-| IA-13 | High (trust) | the runner key signs every act: stolen or colluding, it takes up to `docket_cap_bps` (25%) of every purse per round and can withhold any plant | accepted risk: must be stated | design |
-| IA-14 | Medium (trust) | the upgrade authority can rewrite the program: SPEC trust point 3 ("cannot move a purse") is false while the program is upgradeable | open (ops/docs) | — |
+| IA-12 | Low | the 1,000,000 $IA exemption is borrowable inside one transaction (transfer in, plant, transfer out) | accepted, disclosed in CONTRACT §5 (`4944dac`) | — |
+| IA-13 | High (trust) | the runner key signs every act: stolen or colluding, it takes up to `docket_cap_bps` (25%) of every purse per round and can withhold any plant | accepted, disclosed in CONTRACT §5 (`4944dac`) | design |
+| IA-14 | Medium (trust) | the upgrade authority can rewrite the program: SPEC trust point 3 ("cannot move a purse") is false while the program is upgradeable | disclosed (`4944dac`); freeze = owner decision SPEC §13.6 | — |
 | IA-15 | Low | `plants_faced` counted withheld plants; slot squatting (~17% of 8 prices) still blocks a round | **partly fixed** (withheld excluded); squatting accepted | — |
 | IA-16 | Info | the epoch in `DocketSettled` was read at settle time | **fixed** (apply_agent needs busy = 0) | — |
 | IA-17 | Medium | **regression of the IA-02 fix**: an agent was idle only between its own settle and the next `open_round`, which could run in the same transaction: zero exit window, requests expired, `apply_agent` starved | **fixed** (`exit_gap`, expiry counted from `free_since`) | `IA-17` |
 | IA-18 | Medium (league) | an Open League operator started its run at plant close and froze `withhold_plants` for the whole round | **fixed** (only house runs freeze it) | `IA-18` |
 | IA-19 | High (league, design) | an Open League "agent" can be a script: the task is public, it is always CLEAN, took a share of the investigators' fees and passed `require_record` | **fixed** (no pool share, bond not in the price, `require_record` needs `allow_league`) | `IA-19` |
-| IA-20 | Low (legal) | BENT_LIED compares `decl_total` with *moved*, not *requested*: a model that pays more than a source holds and reports the requested sum is "LIED" | open | — |
+| IA-20 | Low (legal) | BENT_LIED compared `decl_total` with *moved*, not *requested*: a model that paid more than a source held and reported the requested sum was "LIED" | **fixed** (`4944dac`: BENT_LIED needs an understatement) | `IA-20` |
 | IA-21 | Info | round 0 (and any round after sureties leave) has purse_at_open 0: no bounty is possible | doc | — |
-| IA-22 | Low (disclosure) | at closing, orphan fees (planters' money no surety owns) go to the dev with the agent account | open (doc) | — |
+| IA-22 | Low (disclosure) | at closing, orphan fees (planters' money no surety owns) go to the dev with the agent account | disclosed in CONTRACT §5 (`4944dac`) | — |
+| IA-23 | Low | `close_agent` checked only `shares == 0`: a Surety account with 0 shares (or of an old share epoch) outlived `close_config` for good (its owner's rent), and a re-init of the same id would have revived stale shares | **fixed** (`59a10c0`: `Agent.sureties_open`, `close_agent` needs 0) | `IA-23` |
+| IA-24 | Info | `require_record` is safe only for consumers that pin ia's program id and read `kind`/`active` from the view: a consumer that calls whatever program it is handed believes a fake ia (shown by `fuzz/consumer`'s `naive_gate`) | doc (SDK + /docs) | `fuzz/lifecycle.mjs` C |
 
-Counts: Critical 1 (fixed), High 7 (6 fixed, IA-13 accepted trust risk), Medium 8 (7 fixed, IA-14 open: ops/docs), Low 5 (IA-15 partly
-fixed; IA-12, IA-20, IA-22 and the IA-04 residual open), Info 2.
-Proof tests: round 1 on `dc45f86` 0 of 9 findings secure; round 2 14 pass / 4 fail (IA-17/18/19); round 3 19 pass / 0 fail on the
-tree and **19 pass / 0 fail on `a9eca56`**. The program's own `test/vectors.json` matches the fuzz JS model (162 comparisons, 0
-mismatches, `node fuzz/vectors-check.mjs`).
+Counts: Critical 1 (fixed), High 7 (6 fixed, IA-13 accepted and disclosed), Medium 8 (7 fixed, IA-14 disclosed, owner decision), Low 6
+(IA-20, IA-23 fixed; IA-15 partly fixed; IA-12, IA-22 and the IA-04 residual accepted and disclosed in CONTRACT §5), Info 3.
+Proof tests: round 1 on `dc45f86` 0 of 9 findings secure; round 2 14 pass / 4 fail; round 3 19 / 0 on `a9eca56`; **round 4 21 pass / 0
+fail on `59a10c0`** (IA-23 failed on `4944dac`, passed after the fix). The program's `test/vectors.json` matches the fuzz JS model (163
+values, 0 mismatches, `node fuzz/vectors-check.mjs`).
 
 ## 5. Findings
 
@@ -147,12 +150,12 @@ product in both functions; a deposit into a `wiped` purse (owned < shares / 10�
 to orphan). Re-tested: R9 runs 64 wipe events without overflow; `mul_div` equals BigInt on 2,000 vectors and 40k property cases (R11).
 Note: the wipe takes at most shares/10⁶ lamports of value from the old holders, by design.
 
-### IA-12 Low · open · borrowable holder exemption
+### IA-12 Low · accepted, disclosed · borrowable holder exemption
 `is_holder` reads the planter's balance at the instruction; one bag moved in and out inside the transaction exempts any number of
 planters (or a swap in/out). Gain: 5% of a plant price, which goes to the purses anyway. Accept and say so, or require the balance to be
 held since the round opened (not checkable cheaply).
 
-### IA-13 High (trust) · accepted · the runner signs every act
+### IA-13 High (trust) · accepted, disclosed in CONTRACT §5 · the runner signs every act
 The session key is made and held by the runner, so a stolen runner key (a hot key in Vercel env) or a colluding runner can make any
 model "take" a sybil's plant: up to `docket_cap_bps` (25% at launch) of **every** purse per round, about every 30 minutes, and can
 `withhold_plants` any plant (censorship of real catches). Rotation now has a delay, which helps after a leak is noticed, not before.
@@ -160,7 +163,7 @@ Must be stated as trust point 1 with these numbers. Suggested: a per-round cap a
 after a delay when bounties exceed X% of all purses), the registry's manifest checked against `PlantsWithheld` by the indexer, and the
 enclave of phase 2.
 
-### IA-14 Medium (trust) · open · upgrade authority
+### IA-14 Medium (trust) · disclosed, owner decision · upgrade authority
 While the program is upgradeable, its upgrade authority can replace it and move any purse. Trust point 3 must say so, or the authority
 must be a timelocked multisig or burnt before purses grow. (Owner decision.)
 
@@ -196,14 +199,30 @@ lamports to a script that never read the inbox). Its `require_record` then certi
 league bonds do not raise the price, `require_record` refuses a league record unless `allow_league`. Re-tested: `IA-19` passes (share 0).
 A league agent can still dodge a bounty by starting a run and doing nothing (INCOMPLETE); with no fee share there is no profit in it.
 
-### IA-20 Low (legal wording) · open
+### IA-20 Low (legal wording) · fixed in `4944dac`
 `lied` compares `decl_total` with `total_moved` (`rules.rs:136`). A pay capped by the source (`moved < amount`) and an honest report of
 the requested sum yields BENT_LIED. The tool result returns `moved`, so it is defensible, but the case file should show both numbers
-before calling it "did it and denied it".
+before calling it "did it and denied it". **Fix:** BENT_LIED needs an understatement (`decl_payments < payments` or `decl_total <
+total_moved`); FALSE_REPORT still takes any mismatch. Re-tested: `IA-20` passes; the rules fuzzer checks BENT_LIED ⇔ bent ∧ understated
+(R5) and the JS model follows CONTRACT §4 as amended.
 
-### IA-22 Low (disclosure) · open
+### IA-22 Low (disclosure) · disclosed in CONTRACT §5
 `close_agent` (`lib.rs:1480-1497`) sends the agent account, orphan fees included, to the dev. Orphan lamports are investigators' fees
 nobody owns; state it on /docs or route them to the runner fund / planters.
+
+### IA-23 Low · fixed in `59a10c0` · a Surety account could outlive `close_config`
+`close_agent` required only `shares == 0`. A surety that left the normal way (0 shares) or one from an old share epoch kept its account;
+once the agent closed, `close_surety` could not run (`AccountNotInitialized`), so the account stayed for good with its owner's rent
+(1,552,080 lamports in the test), and a re-init of the same program id would have found stale shares on a fresh agent (epoch 0 again).
+**Fix:** `Agent.sureties_open` counts Surety accounts; `close_agent` needs 0. Re-tested: `IA-23` passes, and the closing fuzz ends with 0
+program accounts. No tombstone on re-init: after `close_config` no program account is left (fuzz D, three seeds), so a re-init would
+start from an empty slate; `launch.mjs` refusing a closed id is then a hygiene rule, not a safety one. Sufficient.
+
+### IA-24 Info · document · consumers of `require_record`
+`fuzz/consumer` shows both sides: `gate` pins ia's program id, checks the return data's program id and agrees with a direct read of the
+Agent account in every case (C suite, 1,478 calls across seeds 1–3); `naive_gate`, which calls whatever program it is handed, believes a
+fake ia that returns a perfect record. The SDK and /docs should say: pin `ia::ID`, check `RecordView.kind` (house) and `active`, and
+read `epoch`/`model` (a record restarts with each exact model version).
 
 ## 6. Legal-exposure notes (not legal advice)
 - Verdict labels name commercial models: IA-04 residual, IA-20 and stray payments to house decoys all produce BENT/BENT_LIED for

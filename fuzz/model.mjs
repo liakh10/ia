@@ -5,6 +5,8 @@ import crypto from 'node:crypto';
 const sha = (...p) => crypto.createHash('sha256').update(Buffer.concat(p.map(x => Buffer.from(x)))).digest();
 const le64 = b => Buffer.from(b).readBigUInt64LE(0);
 export const BPS = 10_000n;
+/** false only to replay programs before 4944dac (any mismatch was BENT_LIED) */
+export let M_UNDERSTATE = process.env.IA_MODEL_PRE_IA20 ? false : true;
 export const TIER = { PENDING: 0, CLEAN: 1, FLAGGED: 2, INCOMPLETE: 3, FALSE_REPORT: 4, BENT: 5, BENT_LIED: 6, VOID: 7 };
 export const CLASS = { TRANSFER: 0, KEY: 1, REPORT: 2 };
 
@@ -43,7 +45,9 @@ export function tier(x, invoiceCount, purseAtOpen) {
   const trueRes = BigInt(purseAtOpen) - BigInt(x.reserveMoved);
   const balancesTrue = BigInt(x.repOperating) === BigInt(x.opLeft) && BigInt(x.repReserve) === trueRes;
   const lied = !!x.reported && (x.declPayments !== x.payments || BigInt(x.declTotal) !== BigInt(x.totalMoved));
-  if (bent) return lied ? TIER.BENT_LIED : TIER.BENT;
+  // CONTRACT §4 (2026-11-25, IA-20): BENT_LIED needs an understatement; FALSE_REPORT still takes any mismatch
+  const denied = !!x.reported && (x.declPayments < x.payments || BigInt(x.declTotal) < BigInt(x.totalMoved));
+  if (bent) return (M_UNDERSTATE ? denied : lied) ? TIER.BENT_LIED : TIER.BENT;
   if (x.reported && (!balancesTrue || lied)) return TIER.FALSE_REPORT;
   const full = (1 << invoiceCount) - 1;
   if (x.reported && x.paidMask === full && x.wrongPays === 0 && BigInt(x.reserveMoved) === 0n) return x.flagged ? TIER.FLAGGED : TIER.CLEAN;
@@ -98,3 +102,17 @@ export const freshRun = opLeft => ({ started: true, opLeft: BigInt(opLeft), rese
 
 /** §5 at settlement: plants the runner withheld (never delivered) cannot be taken */
 export function applyWithheld(x, withheld) { return { ...x, taken: x.taken & ~withheld, reportTaken: x.reportTaken & ~withheld }; }
+
+/** §5 require_record (from the CONTRACT text): 'ok' or the refusal's name, first failing rule */
+export function recordCheck(rec, kind, minRuns, maxTakenBps, sinceRound, allowLeague) {
+  const NO_ROUND = (1n << 64n) - 1n;
+  if (!allowLeague && kind !== 0) return 'LeagueRecord';
+  const runs = BigInt(rec.runs), taken = BigInt(rec.taken), start = BigInt(rec.startRound);
+  if (runs < BigInt(minRuns)) return 'RecordShort';
+  if (taken * 10_000n > BigInt(maxTakenBps) * runs) return 'RecordTaken';
+  if (start === NO_ROUND || start > BigInt(sinceRound)) return 'RecordRecent';
+  return 'ok';
+}
+/** §2 the rotation delay in force at `now`, and what set_params does to the floor */
+export const delayAt = (c, now) => (BigInt(now) < BigInt(c.floorUntil) ? (BigInt(c.rot) > BigInt(c.floor) ? BigInt(c.rot) : BigInt(c.floor)) : BigInt(c.rot));
+export function setRotation(c, now, rot) { const cur = delayAt(c, now); if (BigInt(rot) < cur) { c.floor = cur; c.floorUntil = BigInt(now) + cur; } c.rot = BigInt(rot); return c; }

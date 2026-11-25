@@ -1,0 +1,27 @@
+[package]
+name = "ia_consumer"
+version = "0.1.0"
+description = "IA fuzz: a test-only program that checks an agent's record by CPI to ia::require_record (a careful consumer that pins ia and compares the answer with a direct read of the Agent account, a naive consumer that calls whatever program it is given, and a fake ia that answers yes to anything). Never deployed outside a local validator."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "ia_consumer"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "ia/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = { version = "1.2.0" }
+# fuzz/build.sh copies this crate next to its snapshot of programs/ia and points this path at the snapshot
+ia = { path = "../../program/programs/ia", features = ["cpi"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

@@ -1,0 +1,55 @@
+{
+ "seed": "3",
+ "started": "2026-11-25T14:40:38.406Z",
+ "snapshot": {
+  "built": "2026-11-25T14:34:41.237Z",
+  "ref": "59a10c0",
+  "feature": "quick",
+  "sources": {
+   "programs/ia/src/errors.rs": "51839e86a3997f6d04808831280ad177b55494b9217a6e10a1fc8719c430f0e3",
+   "programs/ia/src/ext.rs": "38fceaf41a77b45f4c263c040673e4671b4c19a455a082517665528feda67ecd",
+   "programs/ia/src/lib.rs": "fbf4f8ffb7b9935a619a4f676c7361e4802b9b2fc377e8766381d9d740f9288d",
+   "programs/ia/src/rules.rs": "39dcb3a158a5a0de898fb7ec8451a31f46404505182c803bda93c38a122f1d53",
+   "programs/ia_consumer/src/lib.rs": "9f36791948cd90693e0695b0b0b8b38c8268ff210a00fb5d1557449454da57d6",
+   "Cargo.lock": "9b2ebf0855d839d9fd5f6e178cf1d59bfb4c77e5a8855e28db923056a457e0fc"
+  },
+  "binary": {
+   "sha256": "4c392563bd1c33b1b56ea32d51d2dd81e0fa602ac37b1d3f0d6b5cca298b6aa1",
+   "bytes": 546536
+  },
+  "consumer": "b19813414b82603e678845f887257ed9821fcf903e80a73cf5d39ce729ba3777"
+ },
+ "cases": 671,
+ "checks": 34,
+ "suites": {
+  "setup": {
+   "cases": 6,
+   "checks": 1
+  },
+  "C": {
+   "cases": 529,
+   "checks": 0
+  },
+  "R": {
+   "cases": 11,
+   "checks": 5
+  },
+  "round": {
+   "cases": 62,
+   "checks": 0
+  },
+  "S": {
+   "cases": 22,
+   "checks": 10
+  },
+  "D": {
+   "cases": 41,
+   "checks": 18
+  }
+ },
+ "unexpected": [],
+ "log": [
+  "closing: 9369800122 lamports in 29 program accounts → parties gained 9369800122, 0 accounts left (0)"
+ ],
+ "finished": "2026-11-25T14:43:52.850Z"
+}

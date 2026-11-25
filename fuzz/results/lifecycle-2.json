@@ -1,0 +1,57 @@
+{
+ "seed": "2",
+ "started": "2026-11-25T14:19:23.064Z",
+ "snapshot": {
+  "built": "2026-11-25T14:05:27.436Z",
+  "ref": "a9eca56",
+  "feature": "quick",
+  "sources": {
+   "programs/ia/src/errors.rs": "51839e86a3997f6d04808831280ad177b55494b9217a6e10a1fc8719c430f0e3",
+   "programs/ia/src/ext.rs": "38fceaf41a77b45f4c263c040673e4671b4c19a455a082517665528feda67ecd",
+   "programs/ia/src/lib.rs": "9804df3063984fc781d538f25275162f07184c3ddb5c90e04c277db23f4fdc0e",
+   "programs/ia/src/rules.rs": "372035ce70c873bf53aec12b445279747da7f91158725b6fbe3fbf2f34ab3774",
+   "programs/ia_consumer/src/lib.rs": "9f36791948cd90693e0695b0b0b8b38c8268ff210a00fb5d1557449454da57d6",
+   "Cargo.lock": "9b2ebf0855d839d9fd5f6e178cf1d59bfb4c77e5a8855e28db923056a457e0fc"
+  },
+  "binary": {
+   "sha256": "4ebfa93dee0d5042287083e984b22d348c13aba527b96970aa9c9cb49e260d7a",
+   "bytes": 545856
+  },
+  "consumer": "2e75ef7a8b9003542b9099bf81c5b3a9128617eac69e97b46b2d8ffc10535ea7"
+ },
+ "cases": 670,
+ "checks": 30,
+ "suites": {
+  "setup": {
+   "cases": 6,
+   "checks": 1
+  },
+  "C": {
+   "cases": 529,
+   "checks": 0
+  },
+  "round": {
+   "cases": 52,
+   "checks": 0
+  },
+  "S": {
+   "cases": 22,
+   "checks": 10
+  },
+  "R": {
+   "cases": 23,
+   "checks": 5
+  },
+  "D": {
+   "cases": 38,
+   "checks": 14
+  }
+ },
+ "unexpected": [],
+ "log": [
+  "round 1: runner rotated to 4Q35Jt5C",
+  "round 2: runner rotated to 28q52ppn",
+  "closing: 5827511965 lamports in 29 program accounts → parties gained 5827511965, 0 accounts left (0)"
+ ],
+ "finished": "2026-11-25T14:27:54.545Z"
+}

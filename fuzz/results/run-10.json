@@ -1,0 +1,120 @@
+{
+ "seed": "10",
+ "started": "2026-11-25T14:44:00.363Z",
+ "snapshot": {
+  "built": "2026-11-25T14:34:41.237Z",
+  "ref": "59a10c0",
+  "feature": "quick",
+  "sources": {
+   "programs/ia/src/errors.rs": "51839e86a3997f6d04808831280ad177b55494b9217a6e10a1fc8719c430f0e3",
+   "programs/ia/src/ext.rs": "38fceaf41a77b45f4c263c040673e4671b4c19a455a082517665528feda67ecd",
+   "programs/ia/src/lib.rs": "fbf4f8ffb7b9935a619a4f676c7361e4802b9b2fc377e8766381d9d740f9288d",
+   "programs/ia/src/rules.rs": "39dcb3a158a5a0de898fb7ec8451a31f46404505182c803bda93c38a122f1d53",
+   "programs/ia_consumer/src/lib.rs": "9f36791948cd90693e0695b0b0b8b38c8268ff210a00fb5d1557449454da57d6",
+   "Cargo.lock": "9b2ebf0855d839d9fd5f6e178cf1d59bfb4c77e5a8855e28db923056a457e0fc"
+  },
+  "binary": {
+   "sha256": "4c392563bd1c33b1b56ea32d51d2dd81e0fa602ac37b1d3f0d6b5cca298b6aa1",
+   "bytes": 546536
+  },
+  "consumer": "b19813414b82603e678845f887257ed9821fcf903e80a73cf5d39ce729ba3777"
+ },
+ "rounds": 5,
+ "acts": 218,
+ "probes": 341,
+ "checks": 1286,
+ "tiers": {
+  "1": 7,
+  "2": 2,
+  "3": 5,
+  "4": 9,
+  "5": 18,
+  "6": 3,
+  "7": 21,
+  "style:liar": 5,
+  "style:honest": 14,
+  "style:refuser": 4,
+  "style:keyuser": 4,
+  "style:thief": 9,
+  "style:flagger": 4,
+  "style:sloppy": 4
+ },
+ "unexpected": [],
+ "probeLog": {
+  "draw the whole runner fund (IA-05)": {
+   "DrawCap": 5
+  },
+  "plant by the runner": {
+   "RunnerCannotPlant": 2,
+   "PlantsFull": 3
+  },
+  "KEY plant without a canary": {
+   "NoCanary": 2,
+   "PlantsFull": 3
+  },
+  "KEY plant reusing a canary (IA-03)": {
+   "DuplicateCanary": 2
+  },
+  "REPORT target a multiple of 1,000 (IA-04)": {
+   "BadTarget": 2
+  },
+  "deposit while under test (IA-10)": {
+   "UnderTest": 5
+  },
+  "commit_harness by a stranger": {
+   "NotRunner": 5
+  },
+  "plant after the window": {
+   "PlantClosed": 5
+  },
+  "start_run by a stranger": {
+   "NotRunner": 25
+  },
+  "start_run past run_count": {
+   "BadRun": 20,
+   "NoHarness": 5
+  },
+  "start_run with another agent's account": {
+   "BadRun": 20,
+   "NoHarness": 5
+  },
+  "withhold after a run started": {
+   "RunsStarted": 4
+  },
+  "act with another run's index": {
+   "NotSession": 28,
+   "BadRun": 16
+  },
+  "act after the report": {
+   "RunReported": 40
+  },
+  "settle before run_close": {
+   "RunOpen": 5
+  },
+  "act after run_close": {
+   "RunClosed": 4
+  },
+  "settle before the transcript root (IA-08)": {
+   "NoTranscript": 20
+  },
+  "post_transcript by a stranger": {
+   "NotRunner": 20
+  },
+  "settle with a wrong payer": {
+   "BadPayer": 25
+  },
+  "settle a docket with another agent's account": {
+   "NotInLineup": 25
+  },
+  "re-open a settled docket (IA-01)": {
+   "Settled": 25
+  },
+  "claim by someone else": {
+   "ConstraintHasOne": 5
+  },
+  "start_run without a harness": {
+   "NoHarness": 15
+  }
+ },
+ "finished": "2026-11-25T14:52:47.451Z"
+}
