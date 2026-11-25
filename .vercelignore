@@ -1,5 +1,6 @@
 # Never shipped to Vercel: the program workspace (build output, test keys and ledgers), local services, tests and secrets.
-program/
+program/*
+!program/idl/
 fuzz/
 audit/
 lab/
