@@ -273,6 +273,8 @@ export function purseJson(a) {
     // what one share is worth now, in lamports × 1e9 (shares mint 1:1 with lamports at the first deposit)
     lamportsPerShareE9: a.shares === 0n ? null : ((owned * 1_000_000_000n) / a.shares).toString(),
     stats: plain(a.stats), lastRound: a.lastRound.toString(),
+    // Surety accounts still open; the agent account can only close at 0 (IA-23)
+    suretiesOpen: a.suretiesOpen ?? 0,
   };
 }
 

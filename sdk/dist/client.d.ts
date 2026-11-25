@@ -69,6 +69,8 @@ export declare class IaClient {
         unbondShares: bigint;
         unbondSlot: bigint;
         bump: number;
+        unbondDelay: bigint;
+        shareEpoch: number;
     } & {
         address: string;
         lamports: number;

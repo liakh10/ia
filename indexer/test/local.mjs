@@ -332,6 +332,8 @@ await check("GET /v1/investigators, /v1/plants, /v1/rounds, /v1/purses, /v1/agen
   eq(pu.purses.length, 3);
   const a1 = await client.getAgent(1);
   eq(pu.purses[1].assetsLamports, a1.assets); eq(pu.purses[1].stats.bentLied, 1);
+  // IA-23: every Surety account of an agent is counted on the agent (close_agent needs 0); one surety each here
+  eq(a1.suretiesOpen, 1, "Agent.sureties_open"); eq(pu.purses[1].suretiesOpen, 1, "/v1/purses suretiesOpen");
   const ag = (await v1("agents/1")).body;
   eq(ag.model, MODELS[1]); eq(ag.index[0].runs, 2); eq(ag.cases.length, 2);
   eq((await v1("quote")).status, 200);

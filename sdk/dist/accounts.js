@@ -56,7 +56,7 @@ export function decodeConfig(data) {
 }
 export function decodeAgent(data) {
     const a = raw("Agent", data);
-    return { ...a, model: modelString(a.model) };
+    return { ...a, model: modelString(a.model), pendingModel: modelString(a.pendingModel) };
 }
 export function decodeSurety(data) {
     return raw("Surety", data);

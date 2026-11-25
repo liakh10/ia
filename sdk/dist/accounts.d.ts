@@ -36,6 +36,17 @@ export interface AgentAccount {
     stats: Record<string, bigint>;
     lastRound: bigint;
     bump: number;
+    /** seq + 1 of the round whose docket is still unsettled; 0 when free */
+    busy: bigint;
+    pending: boolean;
+    pendingActive: boolean;
+    pendingModel: string;
+    pendingAt: bigint;
+    record: Record<string, bigint>;
+    freeSince: bigint;
+    shareEpoch: number;
+    /** Surety accounts of this agent still open (any shares, any epoch); close_agent needs 0 (IA-23) */
+    suretiesOpen: number;
 }
 export declare function decodeAgent(data: Uint8Array): AgentAccount;
 export declare function decodeSurety(data: Uint8Array): {
@@ -45,6 +56,8 @@ export declare function decodeSurety(data: Uint8Array): {
     unbondShares: bigint;
     unbondSlot: bigint;
     bump: number;
+    unbondDelay: bigint;
+    shareEpoch: number;
 };
 export interface RoundAccount {
     seq: bigint;

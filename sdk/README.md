@@ -4,6 +4,9 @@ Read Internal Affairs straight from Solana, with no runtime dependencies (WebCry
 
 - **Pinned program id** `CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr`: `IaClient` refuses another one unless you pass
   `allowOtherDeployment: true`, and `parseEvents` counts an event only while `ia` itself is the running program.
+- **Programs that call `require_record` by CPI** must pin `ia::ID` (program account and the return data's program id) and check
+  the returned view's `kind`, `active`, `agent` and `epoch`: a fake program with the same instruction name answers yes to anything
+  (audit IA-24). The pattern is in the site's developer docs, section "Requiring a record from another program (CPI)".
 - **The rules, byte for byte with `program/programs/ia/src/rules.rs`**: `roundSeed`, `task`, `offChainTask`, `plantPrice`, `split`,
   `runsFor`, `tier`, `reportHits`, `bounties`, `sharesFor`, `lamportsFor`, `recordCheck`, `fundSurplus`. The tests check every entry of
   `program/test/vectors.json` and the runner's task generator.

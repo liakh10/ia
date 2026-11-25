@@ -9,9 +9,9 @@ Open League, `reap_round`, `require_record`).
 
 | suite | command | tests | result |
 |---|---|---|---|
-| SDK unit | `cd sdk && npm test` | 13 | pass (×2) |
-| API, indexer fold, MCP (no chain) | `node --test api/v1/_test/` | 8 | pass (×2) |
-| Local validator, end to end | `zsh indexer/test/local.sh` | 14 | pass (×2) |
+| SDK unit | `cd sdk && npm test` | 13 | pass (×2, on 59a10c0) |
+| API, indexer fold, MCP (no chain) | `node --test api/v1/_test/` | 8 | pass (×2, on 59a10c0) |
+| Local validator, end to end | `zsh indexer/test/local.sh` | 14 | pass (×3, on 59a10c0) |
 
 ## What the tests prove
 
@@ -59,7 +59,13 @@ Open League, `reap_round`, `require_record`).
 
 ## Open items
 
-- Re-run on the committed program a9eca56: the SDK's IDL equals the committed one (no change), SDK 13/13, API/MCP 8/8, local 14/14.
+- Re-run on the final program 59a10c0 (2026-11-25): `npm run sync-idl` (Agent gains `sureties_open`; `decodeAgent` types the whole
+  layout, `/v1/purses` returns `suretiesOpen`, the local suite checks it), the SDK's tier rule follows IA-20 (BENT_LIED only when the
+  report states fewer payments or a smaller total than the ledger; the new vector `bent_overstated_not_lied` passes), dist rebuilt.
+  SDK 13/13 ×2, API/MCP 8/8 ×2, local validator 14/14 ×3 (the last two with the `suretiesOpen` check).
+- Docs: the CPI section in `docs-src/developers.md` (audit IA-24: a caller of `require_record` pins `ia::ID`, checks the return
+  data's program id and the view's kind, active, agent and epoch).
+- Earlier re-run on the committed program a9eca56: the SDK's IDL equals the committed one (no change), SDK 13/13, API/MCP 8/8, local 14/14.
   The SDK is IDL-driven: `cd sdk && npm run sync-idl && npm run
   build` after each program change; the local suite refuses to run when the SDK's IDL differs from the build's.
 - Production wiring (lead): `IA_LOG_KEYS` (the log's public key), `SOLANA_RPC`, `IA_LOG_URL`, `IA_REGISTRY_URL`, `BLOB_READ_WRITE_TOKEN`,
