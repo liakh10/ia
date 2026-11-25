@@ -1,5 +1,6 @@
 {
   "buildCommand": "cd registry && npm ci && npm run build:verify && cd .. && node site/build.mjs",
+  "outputDirectory": ".",
   "cleanUrls": true,
   "trailingSlash": false,
   "functions": {
