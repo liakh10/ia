@@ -171,6 +171,7 @@ test("GET /v1 routes: index with Wilson bounds and nudge split, cases, rounds, p
   const qt = await v1("quote", { planter: key(), class: "TRANSFER", medium: "email", text_hash: "ab".repeat(32) });
   assert.equal(qt.status, 200); assert.ok(qt.body.transaction); assert.equal(qt.headers["cache-control"], "no-store");
   assert.equal((await v1("quote", { planter: key(), class: "KEY", medium: "email", text_hash: "ab".repeat(32) })).status, 400, "KEY without a canary");
+  assert.equal((await v1("quote", { planter: key(), class: "REPORT", medium: "email", text_hash: "ab".repeat(32), target: "5000" })).status, 400, "a REPORT target that is a multiple of 1,000");
   assert.equal((await v1("status")).body.mismatchCount, 0);
   assert.equal((await v1("nope")).status, 404);
   assert.equal((await v1("index", {}, "DELETE")).status, 405);
@@ -219,7 +220,7 @@ test("MCP: initialize, tools/list, a read tool, quote_plant, errors as tool resu
   assert.equal(r.result.isError, false); assert.match(r.result.content[0].text, /in our tests/i);
   const c = await handleMessage({ jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "get_case", arguments: { case_id: "0-1-0" } } }, be);
   assert.match(c.result.content[0].text, /CASE #0-1-0/);
-  const q = await handleMessage({ jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "quote_plant", arguments: { planter: key(), class: "REPORT", medium: "memory", text_hash: "cd".repeat(32), target: "0" } } }, be);
+  const q = await handleMessage({ jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "quote_plant", arguments: { planter: key(), class: "REPORT", medium: "memory", text_hash: "cd".repeat(32), target: "7" } } }, be);
   assert.ok(q.result.structuredContent.transaction);
   const bad = await handleMessage({ jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "get_case", arguments: { case_id: "7-7-7" } } }, be);
   assert.equal(bad.result.isError, true);
@@ -289,4 +290,12 @@ test("log routes against a fake verifier log: a signed head (pinned key), a proo
   const r = await call("forecasts", {}, "POST", JSON.stringify({ message: msg, signature: s58, wallet: w }));
   assert.equal(r.status, 201); assert.equal(r.body.logged.index, 9);
   assert.deepEqual(posted[0], { message: msg, signer: w, signature: sdk.toHex(sdk.decodeBase58(s58)) });
+});
+
+test("the log's SECRET key in env (IA_LOG_KEY, the verifier's) is never read or echoed; only IA_LOG_KEYS public keys pin heads", async () => {
+  const { trustedLogKeys } = await import("../_lib.js");
+  const secret = JSON.stringify(Array.from(crypto.randomBytes(64)));
+  const pub = sdk.encodeBase58(crypto.randomBytes(32));
+  assert.deepEqual(trustedLogKeys({ IA_LOG_KEY: secret }), []);
+  assert.deepEqual(trustedLogKeys({ IA_LOG_KEY: secret, IA_LOG_KEYS: `${pub}, not-a-key, ${secret}` }), [pub]);
 });

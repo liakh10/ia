@@ -127,9 +127,13 @@ export function logBase(env = process.env) {
   throw new HttpError(503, "log_not_configured", "the transparency log URL is not configured (IA_LOG_URL)");
 }
 
-/** the log keys a head may be signed with: pinned in env (IA_LOG_KEYS, comma separated), never taken from the log itself */
+/**
+ * The log keys a head may be signed with: PUBLIC keys pinned in env `IA_LOG_KEYS` (base58, comma separated), never taken from the log
+ * itself. Only `IA_LOG_KEYS` is read: `IA_LOG_KEY` is the verifier's SECRET keypair in the same deployment and must never be read or
+ * echoed here; anything that is not a 32-byte base58 address is dropped.
+ */
 export function trustedLogKeys(env = process.env) {
-  return String(env.IA_LOG_KEYS || env.IA_LOG_KEY || "").split(",").map((s) => s.trim()).filter(Boolean);
+  return String(env.IA_LOG_KEYS || "").split(",").map((s) => s.trim()).filter((s) => sdk.isAddress(s));
 }
 
 const logCache = new Map();

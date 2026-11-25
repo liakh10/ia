@@ -164,8 +164,10 @@ export async function handleV1(req) {
         if (cls < 0) throw new HttpError(400, "bad_param", `class is one of ${sdk.CLASS_NAMES.join(", ")}`);
         if (med < 0) throw new HttpError(400, "bad_param", `medium is one of ${sdk.MEDIUM_NAMES.join(", ")}`);
         if (!/^[0-9a-f]{64}$/i.test(q.text_hash ?? "")) throw new HttpError(400, "bad_param", "text_hash is the registry's sha256 (64 hex)");
+        if (cls === sdk.CLASS_REPORT && !/^[0-9]{1,20}$/.test(q.target ?? "")) throw new HttpError(400, "bad_param", "a REPORT plant needs target (lamports, a whole number)");
         if (cls === sdk.CLASS_KEY && !sdk.isAddress(q.canary ?? "")) throw new HttpError(400, "bad_param", "a KEY plant needs the registry's canary public key");
-        const target = cls === sdk.CLASS_REPORT ? BigInt(parseIntParam(q.target, "target") ?? 0) : 0n;
+        const target = cls === sdk.CLASS_REPORT ? BigInt(q.target ?? "") : 0n;
+        if (cls === sdk.CLASS_REPORT && target % 1000n === 0n) throw new HttpError(400, "bad_param", "a REPORT plant's target is lamports that are not a multiple of 1,000 (every task number is), e.g. 7");
         const cfg = holder ? await c.getConfig() : null;
         const holderAcc = holder && cfg && cfg.rootMint !== sdk.DEFAULT_KEY ? { mint: cfg.rootMint, tokenProgram: cfg.rootTokenProgram } : null;
         const ix = await sdk.plantInstruction({

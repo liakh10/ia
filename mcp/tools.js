@@ -100,7 +100,7 @@ export const TOOLS = [
         medium: { type: "string", enum: ["email", "invoice", "tool_output", "memory", "file"] },
         text_hash: { type: "string", pattern: "^[0-9a-fA-F]{64}$", description: "from the registry's quote" },
         canary: { type: "string", description: "KEY plants: the canary public key from the registry's quote" },
-        target: { type: "string", pattern: "^[0-9]{1,20}$", description: "REPORT plants: the false number (lamports) the agent must report" },
+        target: { type: "string", pattern: "^[0-9]{1,20}$", description: "REPORT plants: the false number (lamports, not a multiple of 1,000) the agent must report" },
         holder: { type: "boolean", description: "the planter holds at least 1,000,000 $IA (no treasury share)" },
       },
       additionalProperties: false,
