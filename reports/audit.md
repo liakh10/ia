@@ -1,7 +1,10 @@
 # Internal Affairs: internal security review
 
-Status: **round 2** (2026-11-25). Round 1 reviewed the scaffold `dc45f86`; round 2 re-tested the program owner's fixes (working tree
-of `program/programs/ia`, sources hashed in `fuzz/results/snapshot.json`: `lib.rs` `fd7f6ec9…`, `rules.rs` `ce3dab64…`).
+Status: **round 3, final for program `a9eca56`** (2026-11-25). Round 1 reviewed the scaffold `dc45f86`; round 2 the first fixes
+(uncommitted tree, `lib.rs` `fd7f6ec9…`, `fuzz/results/snapshot-round2.json`); round 3 the second fixes, then the commit `a9eca56`
+(built with `SNAP_REF=a9eca56`, hashes in `fuzz/results/snapshot.json`; its IDL is identical to `program/idl/ia.json`). **Every
+Critical, High and Medium code finding is fixed and re-tested: 19 of 19 proof tests pass.** What stays open is trust and disclosure
+(IA-13, IA-14) and four Low items.
 Reviewer: the IA `audit` agent, independent of the builders. It edits none of the program, runner, registry or SDK code; each fix is made
 by the owner of that part and proven by the test named in its row.
 
@@ -59,23 +62,26 @@ by taking that plant, which is the product.
 | IA-06 | Medium | paying a KEY/REPORT plant's address was neither taken nor stray: CLEAN | **fixed** | `IA-06 verdict` |
 | IA-07 | High | `unbond_delay` uncapped and read at withdraw time; runner set instantly by `set_roles`: admin key = all sureties locked + drain | **fixed** (cap 216,000, snapshot, rotation delay) | `IA-07` |
 | IA-08 | Medium | anyone could settle at `run_close + 1` before the transcript root: the case file has no root forever | **fixed** (NoTranscript, one run window of grace) | `IA-08` |
-| IA-09 | Medium | `plant` has no maximum price: a planter racing others pays up to 1.95× the quote (8 plants at +10%) | open | — |
+| IA-09 | Medium | `plant` had no maximum price: a planter racing others paid up to 1.95× the quote (8 plants at +10%) | **fixed** (`max_price`, PriceMoved) | `IA-09` |
 | IA-10 | Medium | a deposit after the runs' public acts captured the round's fees risk-free | **fixed** (busy) | `IA-10` |
-| IA-11 | Medium | share math: shares explode when a purse is drained to dust; `shares_for` overflows after ~3 such events and `lamports_for` saturates (underpays withdrawals) | open | `fuzz/rules` R9 |
+| IA-11 | Medium | share math: shares exploded when a purse was drained to dust; `shares_for` overflowed after ~3 such events and `lamports_for` saturated (underpaid withdrawals) | **fixed** (256-bit `mul_div`, share-epoch reset) | `fuzz/rules` R9, R11 |
 | IA-12 | Low | the 1,000,000 $IA exemption is borrowable inside one transaction (transfer in, plant, transfer out) | open, accepted? | — |
 | IA-13 | High (trust) | the runner key signs every act: stolen or colluding, it takes up to `docket_cap_bps` (25%) of every purse per round and can withhold any plant | accepted risk: must be stated | design |
 | IA-14 | Medium (trust) | the upgrade authority can rewrite the program: SPEC trust point 3 ("cannot move a purse") is false while the program is upgradeable | open (ops/docs) | — |
-| IA-15 | Low | `plants_faced`/`untouched` count withheld and squatted plants: ~17% of 8 prices per round fills every slot and inflates "resisted" | open | — |
+| IA-15 | Low | `plants_faced` counted withheld plants; slot squatting (~17% of 8 prices) still blocks a round | **partly fixed** (withheld excluded); squatting accepted | — |
 | IA-16 | Info | the epoch in `DocketSettled` was read at settle time | **fixed** (apply_agent needs busy = 0) | — |
-| IA-17 | Medium | **regression of the IA-02 fix**: an agent is idle only between its own settle and the next `open_round`, which may run in the same transaction: zero exit window, requests expire, `apply_agent` starves | **open** | `IA-17` |
-| IA-18 | Medium (league) | an Open League operator starts its run at plant close and freezes `withhold_plants` for the whole round: undelivered plants takeable again | **open** | `IA-18` |
-| IA-19 | High (league, design) | an Open League "agent" can be a script: the task is public, it is always CLEAN, takes a share of the investigators' fees and passes `require_record` | **open** (league_seats = 0 at launch) | `IA-19` |
+| IA-17 | Medium | **regression of the IA-02 fix**: an agent was idle only between its own settle and the next `open_round`, which could run in the same transaction: zero exit window, requests expired, `apply_agent` starved | **fixed** (`exit_gap`, expiry counted from `free_since`) | `IA-17` |
+| IA-18 | Medium (league) | an Open League operator started its run at plant close and froze `withhold_plants` for the whole round | **fixed** (only house runs freeze it) | `IA-18` |
+| IA-19 | High (league, design) | an Open League "agent" can be a script: the task is public, it is always CLEAN, took a share of the investigators' fees and passed `require_record` | **fixed** (no pool share, bond not in the price, `require_record` needs `allow_league`) | `IA-19` |
 | IA-20 | Low (legal) | BENT_LIED compares `decl_total` with *moved*, not *requested*: a model that pays more than a source holds and reports the requested sum is "LIED" | open | — |
 | IA-21 | Info | round 0 (and any round after sureties leave) has purse_at_open 0: no bounty is possible | doc | — |
 | IA-22 | Low (disclosure) | at closing, orphan fees (planters' money no surety owns) go to the dev with the agent account | open (doc) | — |
 
-Counts: Critical 1 (fixed), High 7 (5 fixed, IA-13 accepted, IA-19 open), Medium 8 (4 fixed, 4 open), Low 4, Info 2.
-Proof tests at the end of round 2: **14 pass, 4 fail** (IA-17, IA-18, IA-19 and their parent tests; all three open).
+Counts: Critical 1 (fixed), High 7 (6 fixed, IA-13 accepted trust risk), Medium 8 (7 fixed, IA-14 open: ops/docs), Low 5 (IA-15 partly
+fixed; IA-12, IA-20, IA-22 and the IA-04 residual open), Info 2.
+Proof tests: round 1 on `dc45f86` 0 of 9 findings secure; round 2 14 pass / 4 fail (IA-17/18/19); round 3 19 pass / 0 fail on the
+tree and **19 pass / 0 fail on `a9eca56`**. The program's own `test/vectors.json` matches the fuzz JS model (162 comparisons, 0
+mismatches, `node fuzz/vectors-check.mjs`).
 
 ## 5. Findings
 
@@ -123,22 +129,23 @@ waits out the old one (`lib.rs:646-701`). Note: `set_params` still changes `boun
 ### IA-08 Medium · fixed · settle before the transcript root
 **Fix:** `NoTranscript` until the root is posted, unless no run started or one more run window has passed (`lib.rs:1141-1144`).
 
-### IA-09 Medium · open · no maximum price on `plant`
-`plant` charges the price at execution (`lib.rs:896`); with 8 plants at +10% each, a planter whose transaction lands last pays 1.95×
-what the site quoted. **Fix (program):** a `max_price: u64` argument, refused above it (the registry quote already has the price).
+### IA-09 Medium · fixed · no maximum price on `plant`
+`plant` charged the price at execution; with 8 plants at +10% each, a planter whose transaction landed last paid 1.95× what the site
+quoted. **Fix:** `max_price` argument, `PriceMoved` above it (the registry passes its quote). Re-tested: `IA-09` passes.
 
 ### IA-10 Medium · fixed · just-in-time deposit
 A deposit after the runs' public reports took a share of the round's fees with no catch risk (10 SOL worth 10.0229 SOL right after
 settle). **Fix:** no deposit while busy.
 
-### IA-11 Medium · open · share math at a drained purse (`rules.rs:260-270`)
+### IA-11 Medium · fixed · share math at a drained purse (`rules.rs` `shares_for`/`lamports_for`)
 `shares_for = amount × (shares + 1) / (owned + 1)`. When bounties take a purse to dust while shares stay, each new deposit multiplies the
 share count by ≈ amount / owned. `fuzz/rules` R9: from 100 SOL of shares, **3** "purse to 1 lamport" events make the next deposit
 overflow (`Overflow`: nobody can stand surety for that agent again), and before that `lamports_for` uses `saturating_mul`, so a
 withdrawal whose `shares × owned` exceeds u128 is silently underpaid (e.g. 1e35 shares × 1e10 lamports → 3,402 lamports paid for 10 SOL).
-A weak model that is drained round after round reaches this (SPEC §11 "models too weak"). **Fix:** when `owned == 0` (or below a dust
-floor) with shares outstanding, write the shares off (reset to 0, dust to orphan) before minting; use a 256-bit mul-div in
-`lamports_for` and fail instead of saturating.
+A weak model that is drained round after round reaches this (SPEC §11 "models too weak"). **Fix (landed):** `mul_div` with a 256-bit
+product in both functions; a deposit into a `wiped` purse (owned < shares / 10⁶) opens a new share epoch (old shares count 0, their dust
+to orphan). Re-tested: R9 runs 64 wipe events without overflow; `mul_div` equals BigInt on 2,000 vectors and 40k property cases (R11).
+Note: the wipe takes at most shares/10⁶ lamports of value from the old holders, by design.
 
 ### IA-12 Low · open · borrowable holder exemption
 `is_holder` reads the planter's balance at the instruction; one bag moved in and out inside the transaction exempts any number of
@@ -157,31 +164,37 @@ enclave of phase 2.
 While the program is upgradeable, its upgrade authority can replace it and move any purse. Trust point 3 must say so, or the authority
 must be a timelocked multisig or burnt before purses grow. (Owner decision.)
 
-### IA-15 Low · open · counters and slot squatting
-`plants_faced += plant_count` (`lib.rs:1169`) includes withheld and garbage plants. Filling all 8 slots costs ≈ 1.14 SOL of which 83%
+### IA-15 Low · partly fixed · counters and slot squatting
+`plants_faced` now excludes withheld plants. Still open by choice: Filling all 8 slots costs ≈ 1.14 SOL of which 83%
 returns to the purses (≈ 0.19 SOL net for a surety of every agent) and blocks real investigators that round while inflating "resisted".
 Count only delivered plants (`plant_count − popcount(withheld)`) and consider one plant per planter per round.
 
-### IA-17 Medium · open · regression of the IA-02 fix: no exit window
+### IA-17 Medium · fixed · regression of the IA-02 fix: no exit window
 `busy` is cleared at the agent's settle (`lib.rs:1219`) or by `close_empty_round` (`lib.rs:1260`), and `open_round` sets it again
 (`lib.rs:860`). Both can run in **one transaction**: `[close_empty_round, open_round]` or `[last settle_docket, open_round]`. With no
 plants (the idle state) a crank or a griefer that chains them leaves every agent busy forever; a matured request then expires
 (`Expired`, `lib.rs:1380`). Proven by `IA-17`. `apply_agent` (`lib.rs:754`) starves the same way, so a model version change or a
 retirement can be blocked. **Fix:** `open_round` requires `now ≥ prev.settle_slot + exit_gap` (a param, ≥ 150 slots at launch), and/or
-measure a request's expiry only over idle slots.
+measure a request's expiry only over idle slots. **Landed:** `exit_gap` (300 slots at launch) refuses `open_round` until
+`prev.settle_slot + exit_gap`; the request's expiry counts from `max(maturity, free_since)`. Re-tested: `IA-17` passes (withdrawal
+found its gap). Side effect, acceptable: a matured request now never expires while tests keep running; it can still be used only in a
+gap, before any plant of the next round exists.
 
-### IA-18 Medium (Open League) · open · an operator freezes `withhold_plants`
+### IA-18 Medium (Open League) · fixed · an operator froze `withhold_plants`
 `withhold_plants` requires `runs_started == 0` (`lib.rs:961`), and a league operator can `start_run` at `plant_close` with no harness
 (`lib.rs:1008-1013`). The runner's withhold then fails (`RunsStarted`) and every undelivered plant can be taken by every house agent in
 that round (IA-03/IA-04 reopen). **Fix:** count only house runs for the freeze, or let league runs start only after the runner's
-withhold (or after a fixed number of slots past plant close).
+withhold (or after a fixed number of slots past plant close). **Landed:** only house runs count. Re-tested: `IA-18` passes.
 
-### IA-19 High (Open League, design) · open · scripted league agents
+### IA-19 High (Open League, design) · fixed · scripted league agents
 The league operator makes the session key and signs the acts. The task is public, so a 30-line script pays every invoice and files the
 true report: always CLEAN, never caught, and it takes `pool / lineup_len` of the investigators' fees each round (proven: 43,575,000
 lamports to a script that never read the inbox). Its `require_record` then certifies "N runs, 0 taken" for something that is not an AI.
 **Fix (design, before `league_seats > 0`):** league agents do not share the house purse pool (league plants pay league purses), the
 `RecordView.kind` must be checked by CPI clients (say so in the SDK and docs), and /docs says league records are self-run.
+**Landed:** league agents take no pool share (house agents split it; a lineup with no house agent sends the pool to the runner fund),
+league bonds do not raise the price, `require_record` refuses a league record unless `allow_league`. Re-tested: `IA-19` passes (share 0).
+A league agent can still dodge a bounty by starting a run and doing nothing (INCOMPLETE); with no fee share there is no profit in it.
 
 ### IA-20 Low (legal wording) · open
 `lied` compares `decl_total` with `total_moved` (`rules.rs:136`). A pay capped by the source (`moved < amount`) and an honest report of
@@ -197,3 +210,10 @@ nobody owns; state it on /docs or route them to the runner fund / planters.
   behaviour that may be a slip. Case files should quote the act and the tool result, and the methodology should list these rules.
 - The holder exemption and "bounty" wording are consistent with SPEC §10; forecasts stay free; nothing in the program takes a wager.
 - The runner can withhold any plant (IA-13): publish the registry manifest beside `PlantsWithheld` so a planter can see why.
+
+## 7. Ops notes for the threat model (from the board)
+- `IA_LOG_KEY` is the verifier's secret log keypair; `/v1` must read only `IA_LOG_KEYS` (public keys). devx fixed a leak where `/v1`
+  pinned and echoed `IA_LOG_KEY` (board 2026-11-25). Never put a secret key in an env var a read-only route can load.
+- The runner key is a hot key in Vercel env and signs every act (IA-13): keep it out of every other project, rotate with
+  `propose_runner` on any suspicion, and watch `Drawn` and `PlantsWithheld` events.
+- The upgrade authority decides IA-14: a timelocked multisig or a frozen program before purses grow (owner decision).

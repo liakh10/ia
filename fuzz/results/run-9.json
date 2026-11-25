@@ -1,88 +1,86 @@
 {
- "seed": "5",
- "started": "2026-11-25T13:15:11.035Z",
+ "seed": "9",
+ "started": "2026-11-25T13:54:21.736Z",
  "snapshot": {
-  "built": "2026-11-25T13:02:43.065Z",
-  "ref": "working tree",
+  "built": "2026-11-25T13:50:07.421Z",
+  "ref": "a9eca56",
   "feature": "quick",
   "sources": {
-   "programs/ia/src/errors.rs": "f57179ab8dfb2f7206d91c295bd3ecc1c6b6fa954ee110152aac8bad1489024a",
+   "programs/ia/src/errors.rs": "51839e86a3997f6d04808831280ad177b55494b9217a6e10a1fc8719c430f0e3",
    "programs/ia/src/ext.rs": "38fceaf41a77b45f4c263c040673e4671b4c19a455a082517665528feda67ecd",
-   "programs/ia/src/lib.rs": "fd7f6ec98b661be95f12a289f557d6161704db34c901710a6c405af5b1cee846",
-   "programs/ia/src/rules.rs": "ce3dab642534802655850073ecc4cee5b48dcf2dfa5fc363e7495e26ce816439",
+   "programs/ia/src/lib.rs": "9804df3063984fc781d538f25275162f07184c3ddb5c90e04c277db23f4fdc0e",
+   "programs/ia/src/rules.rs": "372035ce70c873bf53aec12b445279747da7f91158725b6fbe3fbf2f34ab3774",
    "Cargo.lock": "2a2e2570f2c21c52c8cd00a439eeef79eb827578b657df4b3101f492471fb139"
   },
   "binary": {
-   "sha256": "98944524333a3af2436207dbdcf3cbe77fd493021b15ef7fdfdb3ed7b9805ab3",
-   "bytes": 540176
+   "sha256": "4ebfa93dee0d5042287083e984b22d348c13aba527b96970aa9c9cb49e260d7a",
+   "bytes": 545856
   }
  },
- "rounds": 5,
- "acts": 208,
- "probes": 334,
- "checks": 1180,
+ "rounds": 6,
+ "acts": 271,
+ "probes": 340,
+ "checks": 1354,
  "tiers": {
-  "1": 8,
-  "2": 2,
-  "3": 4,
-  "4": 6,
-  "5": 18,
-  "6": 4,
-  "7": 3,
-  "style:sloppy": 4,
-  "style:liar": 4,
+  "1": 7,
+  "2": 1,
+  "3": 8,
+  "4": 4,
+  "5": 30,
+  "6": 1,
+  "7": 2,
+  "style:liar": 10,
   "style:honest": 14,
-  "style:keyuser": 6,
-  "style:flagger": 4,
-  "style:refuser": 6,
-  "style:thief": 4
+  "style:keyuser": 11,
+  "style:sloppy": 6,
+  "style:flagger": 2,
+  "style:thief": 3,
+  "style:refuser": 5
  },
  "unexpected": [],
  "probeLog": {
   "draw the whole runner fund (IA-05)": {
-   "DrawCap": 5
+   "DrawCap": 6
   },
   "plant by the runner": {
-   "RunnerCannotPlant": 4,
-   "PlantsFull": 1
+   "RunnerCannotPlant": 6
   },
   "KEY plant without a canary": {
-   "NoCanary": 4,
-   "PlantsFull": 1
+   "NoCanary": 6
   },
   "KEY plant reusing a canary (IA-03)": {
    "DuplicateCanary": 3
   },
   "REPORT target a multiple of 1,000 (IA-04)": {
-   "BadTarget": 4
+   "BadTarget": 6
   },
   "deposit while under test (IA-10)": {
-   "UnderTest": 5
+   "UnderTest": 6
   },
   "commit_harness by a stranger": {
-   "NotRunner": 5
+   "NotRunner": 6
   },
   "plant after the window": {
-   "PlantClosed": 5
+   "PlantClosed": 6
   },
   "start_run by a stranger": {
-   "NotRunner": 25
+   "NotRunner": 22
   },
   "start_run past run_count": {
-   "BadRun": 25
+   "BadRun": 22
   },
   "start_run with another agent's account": {
-   "BadRun": 25
+   "BadRun": 22
   },
   "withhold after a run started": {
    "RunsStarted": 5
   },
   "act after the report": {
-   "RunReported": 38
+   "RunReported": 49
   },
   "act with another run's index": {
-   "BadRun": 23,
-   "NotSession": 19
+   "BadRun": 20,
+   "NotSession": 31
   },
   "settle before run_close": {
    "RunOpen": 5
@@ -91,22 +89,23 @@
    "RunClosed": 5
   },
   "settle before the transcript root (IA-08)": {
-   "NoTranscript": 24
+   "NoTranscript": 22
   },
   "post_transcript by a stranger": {
-   "NotRunner": 24
+   "NotRunner": 22
   },
   "settle with a wrong payer": {
-   "BadPayer": 25
+   "BadPayer": 22
   },
   "settle a docket with another agent's account": {
-   "NotInLineup": 25
+   "NotInLineup": 22
   },
   "re-open a settled docket (IA-01)": {
-   "Settled": 25
+   "Settled": 22
   },
   "claim by someone else": {
    "ConstraintHasOne": 4
   }
- }
+ },
+ "finished": "2026-11-25T14:03:08.011Z"
 }

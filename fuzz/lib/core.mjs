@@ -54,7 +54,8 @@ export const u64 = n => { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n
 export const big = x => BigInt(x.toString());
 
 export function harness(url = RPC) {
-  const idl = JSON.parse(fs.readFileSync(path.join(SCRATCH, 'idl/ia.json'), 'utf8'));
+  // the snapshot's IDL (built from the same commit as the binary; at a9eca56 identical to program/idl/ia.json); IA_IDL overrides
+  const idl = JSON.parse(fs.readFileSync(process.env.IA_IDL || path.join(SCRATCH, 'idl/ia.json'), 'utf8'));
   const conn = new web3.Connection(url, 'confirmed');
   const admin = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(path.join(SCRATCH, 'authority.json'), 'utf8'))));
   const provider = new anchor.AnchorProvider(conn, new anchor.Wallet(admin), { commitment: 'confirmed' });

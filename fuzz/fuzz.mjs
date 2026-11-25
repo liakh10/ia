@@ -53,7 +53,7 @@ async function globalInvariants() {
     const a = await W.agent(id); const l = await h.lam(K.agent(id)); const rr = await rentOf(K.agent(id));
     check('I1 agent lamports = rent + assets', l === rr + big(a.assets), () => `agent ${id}: lamports ${l} ≠ rent ${rr} + assets ${a.assets}`);
     check('I1 orphan ≤ assets', big(a.orphan) <= big(a.assets), `agent ${id}`);
-    let s = 0n; for (const k of sureties) { const su = await h.fetch('surety', K.surety(id, k.publicKey)); if (su) s += big(su.shares); }
+    let s = 0n; for (const k of sureties) { const su = await h.fetch('surety', K.surety(id, k.publicKey)); if (su && (su.shareEpoch === undefined || su.shareEpoch === a.shareEpoch)) s += big(su.shares); } // stale share epochs count 0
     check('I1 Σ surety shares = agent shares', s === big(a.shares), () => `agent ${id}: Σ ${s} ≠ ${a.shares}`);
   }
   const t = await h.F.treasury.fetch(K.TREASURY, 'confirmed');

@@ -1,0 +1,16 @@
+{
+ "built": "2026-11-25T13:02:43.065Z",
+ "ref": "working tree",
+ "feature": "quick",
+ "sources": {
+  "programs/ia/src/errors.rs": "f57179ab8dfb2f7206d91c295bd3ecc1c6b6fa954ee110152aac8bad1489024a",
+  "programs/ia/src/ext.rs": "38fceaf41a77b45f4c263c040673e4671b4c19a455a082517665528feda67ecd",
+  "programs/ia/src/lib.rs": "fd7f6ec98b661be95f12a289f557d6161704db34c901710a6c405af5b1cee846",
+  "programs/ia/src/rules.rs": "ce3dab642534802655850073ecc4cee5b48dcf2dfa5fc363e7495e26ce816439",
+  "Cargo.lock": "2a2e2570f2c21c52c8cd00a439eeef79eb827578b657df4b3101f492471fb139"
+ },
+ "binary": {
+  "sha256": "98944524333a3af2436207dbdcf3cbe77fd493021b15ef7fdfdb3ed7b9805ab3",
+  "bytes": 540176
+ }
+}
