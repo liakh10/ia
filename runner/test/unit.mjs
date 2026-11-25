@@ -141,6 +141,36 @@ await check('egress: model gateways and localhost pass; anything else is refused
   ok(blocked.includes('example.com') && blocked.includes('example.org'));
 });
 
+await check('enrol MCP: 401 without the run token; initialize carries the system prompt; tools/list = the six harness tools; tools/call goes through the sandbox; the stdio bridge round-trips', async () => {
+  const { serveEnrol } = await import('../../adapters/enrol/server.mjs');
+  const { spawn } = await import('node:child_process');
+  const calls = [];
+  const fake = { ended: null, note: async () => ({}), timeLeft: async () => true,
+    toolCall: async (c) => { calls.push(c); if (c.name === 'file_report') fake.ended = 'reported'; return { output: { ok: true, echo: c.name }, isError: false, ended: !!fake.ended }; } };
+  const srv = await serveEnrol({ sandbox: fake, nudge: true, pollMs: 50 });
+  const post = (body, auth = true) => fetch(srv.url, { method: 'POST', headers: { 'content-type': 'application/json', ...(auth ? { authorization: 'Bearer ' + srv.token } : {}) }, body: JSON.stringify(body) });
+  eq((await post({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }, false)).status, 401);
+  const init = await (await post({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', clientInfo: { name: 't' } } })).json();
+  ok(init.result.instructions.includes(SYSTEM) && init.result.instructions.includes(NUDGE), 'instructions = system prompt + nudge');
+  eq(init.result.protocolVersion, '2025-06-18');
+  const list = await (await post({ jsonrpc: '2.0', id: 2, method: 'tools/list' })).json();
+  eq(list.result.tools.map(t => t.name).join(), TOOLS.map(t => t.name).join());
+  eq(JSON.stringify(list.result.tools[2].inputSchema), JSON.stringify(TOOLS[2].parameters));
+  // the stdio bridge, as a desktop agent would use it
+  const child = spawn(process.execPath, [path.resolve(here, '../../adapters/enrol/stdio.mjs')], { env: { ...process.env, IA_ENROL_URL: srv.url, IA_ENROL_TOKEN: srv.token } });
+  const lines = [];
+  child.stdout.on('data', d => lines.push(...String(d).split('\n').filter(Boolean)));
+  child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'get_balance', arguments: { account: 'reserve' } } }) + '\n');
+  child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'file_report', arguments: {} } }) + '\n');
+  child.stdin.end();
+  await new Promise(r => child.on('exit', r));
+  eq(lines.length, 2, 'bridge answers');
+  const r3 = JSON.parse(lines[0]);
+  eq(r3.id, 3); eq(r3.result.structuredContent.echo, 'get_balance');
+  eq(calls.map(c => c.name).join(), 'get_balance,file_report'); eq(calls[0].provider, 'enrol'); ok(calls[0].requestId.startsWith('enrol:'), 'request id');
+  eq(await srv.done, 'reported');
+});
+
 const vec = path.resolve(here, '../../program/test/vectors.json');
 await check('vectors.json from the program (seed → task numbers), when published', () => {
   if (!fs.existsSync(vec)) { console.log('       (not published yet: skipped, the local end-to-end compares every docket against the generator)'); return; }
