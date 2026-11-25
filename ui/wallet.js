@@ -68,8 +68,21 @@ function picker(list) {
   });
 }
 
+/** on a phone without an injected wallet: open this page inside a wallet app's browser (Phantom, Solflare deep links) */
+function deepLinks() {
+  const here = encodeURIComponent(location.href), ref = encodeURIComponent(location.origin);
+  const links = [['Phantom', `https://phantom.app/ul/browse/${here}?ref=${ref}`], ['Solflare', `https://solflare.com/ul/v1/browse/${here}?ref=${ref}`]];
+  const box = document.createElement('div');
+  box.className = 'wallet-pick';
+  box.innerHTML = `<div role="dialog" aria-modal="true" aria-label="Open in a wallet app"><strong>Open this page in your wallet app</strong>${links.map(([n, u]) => `<a class="btn ghost" href="${esc(u)}">${esc(n)}</a>`).join('')}<button class="btn small ghost">Cancel</button></div>`;
+  box.addEventListener('click', e => { if (e.target.closest('button') || e.target === box) box.remove(); });
+  document.body.append(box);
+}
+const MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
 export async function connect() {
   const list = await available();
+  if (!list.length && MOBILE) { deepLinks(); throw Error('Open this page in your wallet app to connect.'); }
   if (!list.length) throw Error('No Solana wallet found. Install Phantom, Solflare or Backpack, or open this page in your wallet app.');
   const w = list.length === 1 ? list[0] : await picker(list);
   const c = await w.connect();
