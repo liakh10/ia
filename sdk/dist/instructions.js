@@ -90,7 +90,8 @@ export async function claimPlantInstruction(a) {
 export async function openRoundInstruction(a) {
     const p = pdas(a.programId ?? IA_PROGRAM_ID);
     const seq = BigInt(a.seq);
-    const remaining = await Promise.all(a.lineup.map(async (id) => ({ pubkey: await p.agent(id), isSigner: false, isWritable: false })));
+    // writable: open_round marks each lineup agent busy until its docket settles
+    const remaining = await Promise.all(a.lineup.map(async (id) => ({ pubkey: await p.agent(id), isSigner: false, isWritable: true })));
     return buildInstruction("open_round", {}, {
         payer: a.payer, prevRound: seq > 0n ? await p.round(seq - 1n) : undefined, round: await p.round(seq),
     }, { programId: a.programId, remaining });
