@@ -92,7 +92,7 @@ if (!DRY) {
 /* 7 */
 if (!has('keep-program')) {
   const auth = await authorityOf(conn, PID);
-  if (auth === undefined) console.log('  program: already closed');
+  if (auth === undefined || auth === 'closed') console.log('  program: already closed');
   else if (DRY) console.log('  program: would be closed through sol-ops (its rent back to the dev)');
   else {
     console.log(`  ${t()}  sol-ops close ia…`);

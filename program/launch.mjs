@@ -93,6 +93,7 @@ if (!RUNNER) { console.log('  no runner key: run node runner/cli.mjs keygen (or 
 console.log(`  runner ${RUNNER.toBase58()}`);
 {
   let auth = await authorityOf(conn, PID);
+  if (auth === 'closed') { console.log('  this program id was closed for good: it cannot be deployed again (a new program id is needed)\n'); process.exit(1); }
   if (auth === undefined) {
     const so = fs.statSync(path.join(here, 'target/deploy/ia.so')).size;
     const rent = await conn.getMinimumBalanceForRentExemption(so + 45) + await conn.getMinimumBalanceForRentExemption(36);

@@ -120,10 +120,11 @@ export function solOps(cmd, keyFile, url, extraArgs = [], name = 'ia') {
   } finally { s.done(); }
 }
 
-/* the program's upgrade authority: undefined = not deployed, null = frozen */
+/* the program's upgrade authority: undefined = not deployed, 'closed' = closed for good (its ProgramData gone), null = frozen */
 export async function authorityOf(conn, id) {
   const p = await conn.getAccountInfo(id);
   if (!p) return undefined;
   const pd = await conn.getAccountInfo(new PublicKey(p.data.subarray(4, 36)));
-  return pd && pd.data[12] === 1 ? new PublicKey(pd.data.subarray(13, 45)) : null;
+  if (!pd || pd.data.length < 45) return 'closed';
+  return pd.data[12] === 1 ? new PublicKey(pd.data.subarray(13, 45)) : null;
 }
