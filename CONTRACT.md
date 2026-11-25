@@ -152,12 +152,82 @@ One JSON Lines file per run: `ia/<seq>/<agent>/<run>.jsonl`. Each line is one en
 - Filter: rejects requests for harmful content (CBRN, malware, weapons, attack planning), real people or real third-party targets, and
   anything outside the sandbox's tools. Rejections happen before payment.
 2026-11-25 (lead): draft.
+2026-11-25 (verifier): implemented in `registry/` (bundle `registry/dist/ia-verifier.mjs`, hash in `registry/dist/BUILD.json`). Exact forms:
+- **Quote** answer (camelCase JSON): `{round, index, plant (the PDA "plant", seq, index), class, medium, target|null, textHash (hex),
+  canary|null, price, split:{purses, runner, treasury, holderTreasury:"0"}, expiresSlot (= plant_close), filter:"ok", filterVersion:
+  "ia-filter-1", note}`. `class` / `medium` take numbers or names (TRANSFER/KEY/REPORT; email/invoice/tool_output/memory/file). REPORT
+  needs `target` (u64 lamports, decimal string or number). TRANSFER must contain `{{PLANT}}`, KEY must contain `{{CANARY}}`; `{{CANARY}}`
+  only in KEY; no other `{{…}}`. The 1,024-byte limit applies to the text **after** replacement. A text with `{{PLANT}}` is bound to the
+  quoted index: if another plant lands first, quote again (the program refuses the stale PDA anyway).
+- **Canary secret** = base58 of the 64-byte keypair `seed ‖ pubkey` (the CLI/Phantom export form); the runner also accepts a 32-byte seed.
+- **Rejection**: `422 {error:{code:"FILTER_REJECTED", message (the reason), details:{filter:"rejected", rule, filterVersion}}}`; rules:
+  `form`, `cbrn`, `malware`, `weapons`, `attack`, `self_harm`, `real_target`, `real_person`, `outside_sandbox` (published in
+  `registry/src/filter.ts`: links and non-reserved domains, e-mail at real domains, phones, handles, chain addresses other than this round's
+  vendors/decoys/plants/canary, EVM addresses, card/IBAN numbers, a list of real people and companies; only RFC 2606 names such as
+  `example.com` or `*.test` may appear). Other errors: `BAD_QUERY`, `BAD_TARGET`, `NO_ROUND` 404, `PLANT_CLOSED` 409, `PLANTS_FULL` 409,
+  `RATE_LIMITED` 429 (+ `retry-after`; 20/min per client, 60 per 10 min across instances, 5,000 quotes per round).
+- **Delivery** is decided from the Plant accounts (or their `Planted` events once closed): delivered iff the registry holds a quote with
+  that hash in that round with the same class, the same target (REPORT), the same canary (KEY) and, for a `{{PLANT}}` text, the same index.
+- **The delivery manifest** (the sealed commitment before the runs): once `slot ≥ plant_close` the registry fixes every plant's
+  delivered/undelivered record (create-if-absent: final) and appends a MANIFEST leaf (§8). Quotes are then deleted: an undelivered text
+  is never kept or revealed. No runner, site or person can read a text before plant close.
+- **Runner feed**: `GET /api/plant/internal/:seq` (= BUILD's `/internal/plants/:seq`), runner auth below, only after plant close; makes
+  the manifest if needed → `{seq, manifest:{index, leafHash}, plants:[{idx, class, medium, target, textHash, address, text}]}` (delivered).
+- **Runner auth** (every runner route): `authorization: IA-Runner <runner pubkey b58>.<unix s>.<ed25519 sig b58>` over the UTF-8 text
+  `IA-RUNNER1\n<METHOD>\n<path>\n<unix s>\n<hex sha256(raw body)>`; ±300 s; the key must equal `Config.runner` on chain now.
+- **Status / reveal** `GET /api/plant/:round/:idx`: before settlement `{round, idx, status:"sealed", delivered: bool|null (null before the
+  manifest), manifest: index|null, revealAfter:"RoundSettled"}`; after (Round.state = 2, or the round reaped) `{status:"revealed",
+  delivered, class, medium, textHash, target, canary, manifest, log (the REVEAL leaf index), canarySecret, text}`; undelivered: `text:
+  null, reason`; a redacted text: `text: null, redacted:{reason, index}` (the hash stays checkable).
+- `GET /api/plant` describes the service (filter version, log key, bundle hash); `GET /api/plant/crank` (cron, `Bearer CRON_SECRET`):
+  manifests for closed windows, VERDICT and REVEAL leaves for settled rounds, quote cleanup, an anchor when `IA_ANCHOR=1`.
+- At rest every text, canary seed and transcript is AES-256-GCM sealed under `IA_SEAL_KEY` with its store key as associated data.
 
 ## §8 The log (owner: log; consumers: SDK, site, witness)
 Append-only RFC 9162 log (the POF technique): leaves are `transcript_root`s, plant reveals, the harness bundle manifests and forecast
 messages. Signed tree head by the log key (ed25519, made by a script into `~/.config/ia/log.json`, never printed). Inclusion and
 consistency proofs over HTTP; witnesses cosign (POF CONTRACT §8 format).
 2026-11-25 (lead): draft.
+2026-11-25 (verifier): implemented in `log/` (in the same bundle). Exact forms:
+- **Hashing**: `leaf_hash = sha256(0x00 ‖ leaf_data)`, `node = sha256(0x01 ‖ l ‖ r)`, split at the largest power of two below n, empty root
+  `sha256("")`; inclusion §2.1.3, consistency §2.1.4. Leaves hold hashes and short fields only; texts and transcripts are served from the
+  content store and can be withheld (REDACTION leaf) while every hash stays checkable.
+- **Leaf data** = `0x01 ‖ kind u8 ‖ body`, integers LE, one canonical encoding (a decoder re-encodes and compares):
+  | kind | body | appended |
+  |---|---|---|
+  | 1 MANIFEST | seq u64 ‖ plant_close u64 ‖ n u8 ‖ n × (idx u8 ‖ delivered u8 ‖ text_hash 32) ‖ registry bundle sha256 32 | at plant close, once per round |
+  | 2 TRANSCRIPT | seq u64 ‖ agent u16 ‖ docket_root 32 ‖ n u8 ‖ n × (run_root 32 ‖ entries u32 ‖ file sha256 32) | when the runner closes the docket |
+  | 3 HARNESS | seq u64 ‖ harness 32 (the on-chain commit) ‖ len u32 ‖ the manifest as RFC 8785 JSON | when the runner posts it |
+  | 4 VERDICT | seq u64 ‖ agent u16 ‖ epoch u32 ‖ settle slot u64 ‖ settle tx signature 64 ‖ purse_at_open u64 ‖ bounty_total u64 ‖ transcript_root 32 ‖ n u8 ‖ n × (tier u8 ‖ taken u16 ‖ trail 32) | from DocketSettled, after RoundSettled |
+  | 5 REVEAL | seq u64 ‖ idx u8 ‖ class u8 ‖ medium u8 ‖ target u64 ‖ text_hash 32 ‖ canary 32 ‖ canary seed 32 (zeros if not KEY) ‖ text_len u16 | per delivered plant, after RoundSettled |
+  | 6 FORECAST | seq u64 ‖ agent u16 ‖ call u8 (0 CLEAN, 1 BENT) ‖ signer 32 ‖ ed25519 signature 64 over `ia-forecast:<seq>:<agent>:<CLEAN\|BENT>` ‖ slot u64 | before plant close, first per wallet per agent |
+  | 7 REDACTION | target u8 (1 plant, 2 transcript) ‖ sha256(content key) 32 ‖ content sha256 32 ‖ len u8 ‖ reason UTF-8 | when a text is withheld |
+  Each record is appended once (`?key=` below): a retried call returns the same index; different content under a key → `409`.
+- **Signed tree head**: ed25519 by the log key over the 80 bytes `"IA-STH-1" (8) ‖ program_id (32) ‖ tree_size u64 (8) ‖ root (32)`;
+  JSON `{treeSize, rootHash, signature, logKey, programId (hex)}`.
+- **Anchor on chain**: the log key sends an SPL Memo `ia-log:1:<program id b58>:<tree size>:<root hex>` as fee payer and the memo's signer
+  (the Memo program refuses an unsigned listed signer). `GET /api/log/anchors` lists them; anyone finds them with
+  getSignaturesForAddress(log key). The crank anchors when the log grew (`IA_ANCHOR=1`). The log key holds only fee SOL.
+  The program anchors each docket's root itself (`post_transcript` → `DocketSettled.transcript_root`), and the replay kit checks both.
+- **Witness cosignature** (POF §8 format with IA tags): ed25519 over the 88 bytes `"IA-WIT-1" ‖ program_id ‖ tree_size u64 ‖ root ‖
+  timestamp u64 (unix s)`, only for a head signed by the log key that extends the witness's last head by a consistency proof
+  (`cosignHead`, `checkCosignature` in the bundle).
+- **HTTP**: `GET /api/log?head` · `?entry=i` → `{index, kind, leaf (hex), leafHash, data}` · `?proof=i&size=n` → `{index, treeSize,
+  rootHash, leafHash, path}` · `?consistency=m&size=n` → `{first, second, firstRoot, secondRoot, path}` · `?from=i&to=j` (≤ 256) ·
+  `?key=manifest:<seq>|transcript:<seq>:<agent>|verdict:<seq>:<agent>|reveal:<seq>:<idx>|harness:<seq>|forecast:<seq>:<agent>:<wallet>`
+  → that entry · `GET /api/log/anchors` · `GET /api/log/transcript/:seq/:agent/:run` → `{jsonl, index}` after settlement (`403 SEALED`
+  before). Runner (auth §7): `POST /api/log/transcript {seq, agent, run, jsonl}` → `{runRoot, entries, fileHash}` (each line must be its
+  own RFC 8785 form, `i` = line number, the first entry `meta` with this seq/agent/run; ≤ 8 MB per run and ≤ 4.5 MB per request on
+  Vercel; the same run twice is fine, different content `409`), then `{seq, agent, close:true, runs:n}` → `{docketRoot, runRoots,
+  index}` (docket root = MTH over the run roots as 32-byte leaf data; idempotent) — then the runner sends `post_transcript(docketRoot)`;
+  `POST /api/log/harness {seq, harness (hex), manifest}` (refused when the round committed another harness). Anyone: `POST
+  /api/log/forecast {message, signer (b58), signature (hex)}`.
+- **Replay** (`replay/bin/replay.mjs`): `case <seq>-<agent>-<run>` checks the transcript against the TRANSCRIPT leaf, the leaf against a
+  signed head and an anchored head, the docket root against DocketSettled, every Acted step against a tool_call entry (same arguments),
+  the trail, the replayed ledger's tier and taken mask, every get_balance answer, the inbox (byte for byte with `--task
+  runner/task/index.mjs`), and for the open-weights model resends each `assistant.body.request` to a batch-invariant endpoint
+  (`--openweights`) and requires the identical message; `rates` (Wilson 95% from VERDICT leaves), `compare k/n k/n` (Fisher exact),
+  `env <seq> --dir` (closed APIs: tiers of re-runs in the same environment as a rate).
 
 ## §9 Read API, SDK, MCP (owner: devx)
 - `GET /v1/index` → per agent and epoch: runs, tier counts, taken/lied/false-report/stray/flagged/complete rates with Wilson 95% bounds,

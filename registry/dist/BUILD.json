@@ -1,0 +1,33 @@
+{
+  "bundle": "registry/dist/ia-verifier.mjs",
+  "sha256": "8a2528de61472a1ebb14aa1942cedb2a2900cac57f3daf19d3fd35c637c9a25a",
+  "bytes": 251806,
+  "esbuild": "0.28.2",
+  "node": "v20",
+  "lockfileSha256": "6c9172ec3c8d542dc4f12fccc2aede962cfcf25a8d41937426ddc19a41c6401f",
+  "sources": {
+    "log/src/anchor.ts": "b3327d990df5b2b7d6e27098ffac3a2a9695ae247215b1b44a890ff114dc9025",
+    "log/src/codec.ts": "e07bb86fab59d8d24ea7939bb15a5438d2d2b878851448d31c0d3244cf2f8fad",
+    "log/src/jcs.ts": "220a0534306e3dd2352cdb5b56b30ae193ff2bb48b5cf6a9aee5a6cfcc74a0d2",
+    "log/src/keys.ts": "ac0c85505f207c277be5ba7cc5bd198b34f08477fb3d6c90ee9f4bda5c76a3c9",
+    "log/src/leaves.ts": "0b051201c8309fa65bf00fb48bb13c63e69c316f27eb53081491fcbc4d310940",
+    "log/src/log.ts": "1c95edc4e30b5aedbda7d441ebf85300a3a1bcc20caa8b3a8ccd591b0c28e97c",
+    "log/src/merkle.ts": "d98bfbf65d7590cdf8297760ea0014b5c2c7108fa6ac7fa20969788ca77621e0",
+    "log/src/rpc.ts": "b4b384bbf00432a4692ef8245eeb84c5dbe7e16ffa67aa6540bbe81e97229484",
+    "log/src/store.ts": "0a983b3c28dfb8c13a20e90226add52867a95a36dce199cd7340c011cb41b956",
+    "log/src/transcript.ts": "71428c6a747296b2dad3da7e57d99b675e112f1ba96816552b5fc7f5edb5723c",
+    "log/src/verify.ts": "29722cba9d524f80b5aa17146ba90fcdd705c7dc819a7a3fc55db851d6f95a98",
+    "registry/idl/ia.json": "fb18245bb45cf9a602559316885e1acd57d44e700f02d5ad56bac817e3bb5019",
+    "registry/src/app.ts": "82aa2f2150364627d724e39d6ab1e4c1bca67eef7da9cf1038c14a2cdede0844",
+    "registry/src/auth.ts": "d4e068d422c6b61d4c10ab49d565b7254b4b9589f39b61d9464322928bc7b778",
+    "registry/src/chain.ts": "da625b76d6d63f6686c53ed68f45ae838fb9338b51f4ffbd5696182280094bd2",
+    "registry/src/filter.ts": "649ed11b29b1745c4d10990506b3ed06a8852204f6fe7fb32c57f2e9115f40ea",
+    "registry/src/idl.ts": "f4473623058f4bbe1bd9accebe40d4d2d87c7a140a5a9b5795c118f77321d313",
+    "registry/src/index.ts": "b2fb8dc497b393e940a0eac6ac7558ee60d2a4d13eb9422335e9805013ea872e",
+    "registry/src/limits.ts": "59867c818a7ea35392b8c8903369870957128a5d12d70e9b52b7168cc89c126c",
+    "registry/src/registry.ts": "8c400561760ef809c7433eafe1078104d90b9e2f2a88eff8f6e5065b9c988a7f",
+    "registry/src/rules.ts": "25917c7221b0a12172ae80444d1681cab85a7211e336bd159fd7a27f30217631",
+    "replay/src/replay.ts": "705e265052ea2f86164367b879a701dd205fe4e82a5af26e7b0834a8cce36fd1",
+    "replay/src/stats.ts": "a623e768b9e502596c25e56e772d0013372ad72f4f9b81a44160a3b5997ecccd"
+  }
+}

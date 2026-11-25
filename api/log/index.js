@@ -1,0 +1,3 @@
+// GET /api/log: the transparency log (CONTRACT §8): ?head, ?entry=i, ?proof=i&size=n, ?consistency=m&size=n, ?from=i&to=j, ?key=…
+import { node, logRoutes } from '../../registry/dist/ia-verifier.mjs';
+export default node(logRoutes);
