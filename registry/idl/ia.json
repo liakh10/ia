@@ -84,7 +84,7 @@
     {
       "name": "add_agent",
       "docs": [
-        "A house lineup agent with its exact model version string. Ids are 0, 1, 2, …"
+        "A house lineup agent with its exact model version string. Ids are 0, 1, 2, … (shared with the Open League)."
       ],
       "discriminator": [
         214,
@@ -160,6 +160,106 @@
       ]
     },
     {
+      "name": "apply_agent",
+      "docs": [
+        "Anyone, once the delay has passed and no docket of the agent is open: the pending change takes effect (a new model version",
+        "opens a new epoch with a fresh record). The next round's lineup sees it."
+      ],
+      "discriminator": [
+        54,
+        54,
+        194,
+        62,
+        134,
+        19,
+        230,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.id",
+                "account": "Agent"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "apply_runner",
+      "docs": [
+        "Anyone, once the rotation delay has passed: the proposed runner becomes the runner."
+      ],
+      "discriminator": [
+        36,
+        12,
+        62,
+        123,
+        57,
+        46,
+        140,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "claim_plant",
       "docs": [
         "The planter, once the round is settled: the bounty its plant earned (maybe zero); the plant account closes to the planter."
@@ -214,9 +314,226 @@
       "args": []
     },
     {
+      "name": "close_agent",
+      "docs": [
+        "Closing, once no surety is left: the agent account to whoever paid its rent (the dev for a house agent, the operator for an",
+        "Open League agent), with what is left in it (orphan fees, share rounding dust)."
+      ],
+      "discriminator": [
+        52,
+        185,
+        104,
+        145,
+        157,
+        30,
+        87,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.id",
+                "account": "Agent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_begin",
+      "docs": [
+        "The admin starts closing: no round, plant, run, deposit or agent from now on; open rounds settle at once, bounties go straight",
+        "to their planters, sureties are paid out (no unbond delay), every account closes to whoever paid it."
+      ],
+      "discriminator": [
+        161,
+        49,
+        64,
+        17,
+        104,
+        205,
+        191,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_config",
+      "docs": [
+        "Closing, once every agent and round is closed: the treasury's fees, the runner fund and every rent to the dev."
+      ],
+      "discriminator": [
+        145,
+        9,
+        72,
+        157,
+        95,
+        125,
+        61,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "runner_fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110,
+                  110,
+                  101,
+                  114,
+                  95,
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "dev",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "close_empty_round",
       "docs": [
-        "Anyone: a round that drew no plant closes at the end of its plant window."
+        "Anyone: a round that drew no plant closes at the end of its plant window (at once while closing).",
+        "Remaining accounts: the round's lineup agents in order (writable): they are no longer under test."
       ],
       "discriminator": [
         13,
@@ -229,6 +546,24 @@
         146
       ],
       "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
         {
           "name": "round",
           "writable": true,
@@ -251,6 +586,108 @@
               }
             ]
           }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_surety",
+      "docs": [
+        "Closing: a surety's share of the purse to its owner, its account's rent with it."
+      ],
+      "discriminator": [
+        176,
+        155,
+        75,
+        50,
+        231,
+        138,
+        84,
+        148
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.id",
+                "account": "Agent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "surety",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  117,
+                  114,
+                  101,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.id",
+                "account": "Agent"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "relations": [
+            "surety"
+          ]
         }
       ],
       "args": []
@@ -335,7 +772,9 @@
     {
       "name": "deposit",
       "docs": [
-        "Stand surety: lamports into the agent's purse for shares of what sureties own of it."
+        "Stand surety: lamports into the agent's purse for shares of what sureties own of it. Open League agents take only their",
+        "operator's money; the runner key never stands surety. Never while the agent is under test (from `open_round` until its",
+        "docket settles), so nobody buys into a round's fees after seeing its acts."
       ],
       "discriminator": [
         242,
@@ -437,7 +876,8 @@
     {
       "name": "draw",
       "docs": [
-        "The runner draws its bills from the fund, at most `runner_draw_cap` per round (counted against the newest round)."
+        "The runner draws its bills from the fund, at most `runner_draw_cap` per round (counted against the newest round). Passing the",
+        "newest round also spills the fund's surplus above `runner_fund_cap` into its purse pool."
       ],
       "discriminator": [
         61,
@@ -496,6 +936,33 @@
                   110,
                   100
                 ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "round",
+          "docs": [
+            "The newest round (optional): the fund's surplus spills into its purse pool."
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "round.seq",
+                "account": "Round"
               }
             ]
           }
@@ -614,10 +1081,78 @@
       ]
     },
     {
+      "name": "leave_league",
+      "docs": [
+        "The operator retires its Open League agent at once (from the next round's lineup); the bond then leaves by unbond + withdraw."
+      ],
+      "discriminator": [
+        203,
+        232,
+        205,
+        216,
+        161,
+        35,
+        177,
+        110
+      ],
+      "accounts": [
+        {
+          "name": "operator",
+          "signer": true,
+          "relations": [
+            "agent"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.id",
+                "account": "Agent"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "open_docket",
       "docs": [
-        "Anyone, after the plant window, for a lineup agent of a round with plants: the docket with the task's numbers and the purse",
-        "at this moment. The payer gets the rent back at settlement."
+        "Anyone, after the plant window (at once while closing), for a lineup agent of an unsettled round with plants: the docket with",
+        "the task's numbers and the purse at this moment. The payer gets the rent back at settlement."
       ],
       "discriminator": [
         99,
@@ -678,6 +1213,7 @@
         },
         {
           "name": "agent",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -985,7 +1521,8 @@
     {
       "name": "post_transcript",
       "docs": [
-        "The runner may post the docket's transcript Merkle root (CONTRACT §6) any time before settlement."
+        "The docket's transcript Merkle root (CONTRACT §6), any time before settlement: the runner for a house agent, the operator for",
+        "an Open League agent."
       ],
       "discriminator": [
         114,
@@ -999,11 +1536,11 @@
       ],
       "accounts": [
         {
-          "name": "runner",
-          "signer": true,
-          "relations": [
-            "config"
-          ]
+          "name": "authority",
+          "docs": [
+            "The runner (house agent) or the agent's operator (Open League)."
+          ],
+          "signer": true
         },
         {
           "name": "config",
@@ -1019,6 +1556,28 @@
                   105,
                   103
                 ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.id",
+                "account": "Agent"
               }
             ]
           }
@@ -1041,9 +1600,259 @@
       ]
     },
     {
+      "name": "propose_runner",
+      "docs": [
+        "Propose a new runner key; it takes over `rotation_delay` slots later (`apply_runner`). Proposing the current runner cancels."
+      ],
+      "discriminator": [
+        86,
+        236,
+        152,
+        23,
+        139,
+        137,
+        201,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "runner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "reap_round",
+      "docs": [
+        "Anyone, once a settled round is not the newest and its claim window has passed (at once while closing): every unclaimed",
+        "bounty to the runner fund (to its planter while closing), every unclaimed plant account closed to its planter, the round's",
+        "rent to its payer. Remaining accounts: (plant, planter) for each unclaimed plant, in index order."
+      ],
+      "discriminator": [
+        251,
+        88,
+        49,
+        166,
+        140,
+        139,
+        171,
+        133
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "round",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "round.seq",
+                "account": "Round"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true
+        },
+        {
+          "name": "runner_fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110,
+                  110,
+                  101,
+                  114,
+                  95,
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "register_agent",
+      "docs": [
+        "Open League: an operator registers its own agent with a bond (≥ `league_bond`) that becomes its purse; the operator is its only",
+        "surety. The agent joins the next round's lineup; the operator starts its runs and earns the plant fees it resists."
+      ],
+      "discriminator": [
+        135,
+        157,
+        66,
+        195,
+        2,
+        113,
+        175,
+        30
+      ],
+      "accounts": [
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.agent_count",
+                "account": "Config"
+              }
+            ]
+          }
+        },
+        {
+          "name": "surety",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  117,
+                  114,
+                  101,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.agent_count",
+                "account": "Config"
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "model",
+          "type": "string"
+        },
+        {
+          "name": "bond",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "request_unbond",
       "docs": [
-        "Start the unbond clock for `shares` (replaces an earlier request). The shares keep earning and losing until withdrawn."
+        "Start the unbond clock for `shares` (replaces an earlier request). The shares keep earning and losing until withdrawn. The",
+        "request matures after the unbond delay in force now and expires one delay later."
       ],
       "discriminator": [
         11,
@@ -1142,9 +1951,71 @@
       ]
     },
     {
+      "name": "require_record",
+      "docs": [
+        "A calling program checks an agent's record by CPI: ≥ `min_runs` started runs in its current exact model version, taken runs",
+        "≤ `max_taken_bps` of them, the record reaching back to `since_round`. Fails otherwise; returns the record (return data)."
+      ],
+      "discriminator": [
+        42,
+        60,
+        71,
+        5,
+        193,
+        30,
+        35,
+        181
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.id",
+                "account": "Agent"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "min_runs",
+          "type": "u64"
+        },
+        {
+          "name": "max_taken_bps",
+          "type": "u16"
+        },
+        {
+          "name": "since_round",
+          "type": "u64"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "RecordView"
+        }
+      }
+    },
+    {
       "name": "set_agent",
       "docs": [
-        "Retire or return an agent, or record a new exact model version (a new epoch). Takes effect from the next round's lineup."
+        "Schedule a lineup change: retire or return an agent, or record a new exact model version (a new epoch). It applies",
+        "`rotation_delay` slots later (`apply_agent`), and only between this agent's dockets. A newer call replaces a pending one.",
+        "Open League agents can only be retired here."
       ],
       "discriminator": [
         154,
@@ -1166,7 +2037,6 @@
         },
         {
           "name": "config",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1222,6 +2092,10 @@
     },
     {
       "name": "set_params",
+      "docs": [
+        "New parameters inside the hard caps. They apply from the next round (a round runs under the parameters of its opening),",
+        "except the surety, draw and rotation rules, which apply at once; a lowered rotation delay still waits out the old one."
+      ],
       "discriminator": [
         27,
         234,
@@ -1321,7 +2195,7 @@
     {
       "name": "set_roles",
       "docs": [
-        "The runner and dev keys (None leaves them), and the $IA mint once (pass its mint account)."
+        "The dev key (None leaves it), and the $IA mint once (pass its mint account). The runner changes only by rotation."
       ],
       "discriminator": [
         119,
@@ -1367,12 +2241,6 @@
       ],
       "args": [
         {
-          "name": "runner",
-          "type": {
-            "option": "pubkey"
-          }
-        },
-        {
           "name": "dev",
           "type": {
             "option": "pubkey"
@@ -1383,8 +2251,9 @@
     {
       "name": "settle_docket",
       "docs": [
-        "Anyone, after the run window: tiers, bounties (agent → round), the agent's share of the round's plant fees (round → agent),",
-        "the stats; the docket closes to its payer."
+        "Anyone, after the run window (at once while closing): tiers, bounties (agent → round), the agent's share of the round's plant",
+        "fees (round → agent), the stats and the epoch record; the docket closes to its payer. An Open League agent that started no run",
+        "forfeits its share to the runner fund and leaves the league."
       ],
       "discriminator": [
         140,
@@ -1476,6 +2345,115 @@
         {
           "name": "payer",
           "writable": true
+        },
+        {
+          "name": "runner_fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110,
+                  110,
+                  101,
+                  114,
+                  95,
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "spill",
+      "docs": [
+        "Anyone: the runner fund's surplus above `runner_fund_cap` into the newest round's purse pool (while it has plants and no",
+        "docket settled)."
+      ],
+      "discriminator": [
+        101,
+        91,
+        244,
+        103,
+        21,
+        236,
+        134,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "runner_fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110,
+                  110,
+                  101,
+                  114,
+                  95,
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "round",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "round.seq",
+                "account": "Round"
+              }
+            ]
+          }
         }
       ],
       "args": []
@@ -1483,7 +2461,8 @@
     {
       "name": "start_run",
       "docs": [
-        "The runner gives a run its session key (one per run, made fresh)."
+        "A run gets its session key (one per run, made fresh): from the runner for a house agent (after its harness commitment), from",
+        "the operator for an Open League agent."
       ],
       "discriminator": [
         72,
@@ -1497,11 +2476,11 @@
       ],
       "accounts": [
         {
-          "name": "runner",
-          "signer": true,
-          "relations": [
-            "config"
-          ]
+          "name": "authority",
+          "docs": [
+            "The runner (house agent) or the agent's operator (Open League)."
+          ],
+          "signer": true
         },
         {
           "name": "config",
@@ -1523,6 +2502,7 @@
         },
         {
           "name": "round",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1544,9 +2524,31 @@
           }
         },
         {
+          "name": "agent",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.id",
+                "account": "Agent"
+              }
+            ]
+          }
+        },
+        {
           "name": "docket",
           "docs": [
-            "The docket's round is checked against `round` in the handler."
+            "The docket's round and agent are checked in the handler."
           ],
           "writable": true
         }
@@ -1564,6 +2566,10 @@
     },
     {
       "name": "withdraw",
+      "docs": [
+        "Between the request's maturity and its expiry, and never while the agent is under test. An active Open League agent keeps",
+        "its minimum bond."
+      ],
       "discriminator": [
         183,
         18,
@@ -1726,6 +2732,79 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "withhold_plants",
+      "docs": [
+        "The runner marks the plants the registry never delivered (no text at plant close), before the first run of the round starts.",
+        "They are never shown and cannot be taken. Bits only add."
+      ],
+      "discriminator": [
+        100,
+        193,
+        159,
+        239,
+        187,
+        135,
+        158,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "runner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "round",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "round.seq",
+                "account": "Round"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "mask",
+          "type": "u16"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1849,6 +2928,32 @@
       ]
     },
     {
+      "name": "AgentClosed",
+      "discriminator": [
+        72,
+        133,
+        207,
+        59,
+        220,
+        188,
+        201,
+        165
+      ]
+    },
+    {
+      "name": "AgentPending",
+      "discriminator": [
+        155,
+        117,
+        208,
+        211,
+        107,
+        62,
+        183,
+        4
+      ]
+    },
+    {
       "name": "AgentSet",
       "discriminator": [
         205,
@@ -1872,6 +2977,19 @@
         65,
         142,
         21
+      ]
+    },
+    {
+      "name": "ClosingBegun",
+      "discriminator": [
+        3,
+        21,
+        199,
+        214,
+        209,
+        212,
+        107,
+        91
       ]
     },
     {
@@ -1940,6 +3058,19 @@
       ]
     },
     {
+      "name": "FundSpilled",
+      "discriminator": [
+        236,
+        42,
+        247,
+        158,
+        92,
+        53,
+        113,
+        230
+      ]
+    },
+    {
       "name": "HarnessCommitted",
       "discriminator": [
         47,
@@ -1966,6 +3097,19 @@
       ]
     },
     {
+      "name": "PlantsWithheld",
+      "discriminator": [
+        3,
+        236,
+        223,
+        156,
+        136,
+        86,
+        80,
+        128
+      ]
+    },
+    {
       "name": "RoundOpened",
       "discriminator": [
         99,
@@ -1976,6 +3120,19 @@
         57,
         109,
         178
+      ]
+    },
+    {
+      "name": "RoundReaped",
+      "discriminator": [
+        165,
+        137,
+        137,
+        38,
+        96,
+        15,
+        63,
+        164
       ]
     },
     {
@@ -2005,6 +3162,19 @@
       ]
     },
     {
+      "name": "RunnerRotation",
+      "discriminator": [
+        213,
+        214,
+        50,
+        141,
+        181,
+        55,
+        148,
+        141
+      ]
+    },
+    {
       "name": "SuretyMoved",
       "discriminator": [
         79,
@@ -2015,6 +3185,19 @@
         205,
         250,
         222
+      ]
+    },
+    {
+      "name": "TranscriptPosted",
+      "discriminator": [
+        177,
+        104,
+        198,
+        128,
+        250,
+        61,
+        125,
+        19
       ]
     }
   ],
@@ -2208,6 +3391,121 @@
       "code": 6037,
       "name": "BadMint",
       "msg": "the root mint is already set or is not a mint"
+    },
+    {
+      "code": 6038,
+      "name": "NotOperator",
+      "msg": "only the agent's operator may do this"
+    },
+    {
+      "code": 6039,
+      "name": "LineupFull",
+      "msg": "the lineup is full (16 active agents)"
+    },
+    {
+      "code": 6040,
+      "name": "LeagueFull",
+      "msg": "the Open League has no free seat"
+    },
+    {
+      "code": 6041,
+      "name": "LeagueBond",
+      "msg": "an Open League bond is below the minimum, or a withdrawal would take an active agent's purse below it"
+    },
+    {
+      "code": 6042,
+      "name": "LeagueAgent",
+      "msg": "an Open League agent can only be retired by the admin (operators leave with leave_league)"
+    },
+    {
+      "code": 6043,
+      "name": "NoPending",
+      "msg": "nothing is pending"
+    },
+    {
+      "code": 6044,
+      "name": "TooEarly",
+      "msg": "the delay has not passed yet"
+    },
+    {
+      "code": 6045,
+      "name": "UnderTest",
+      "msg": "the agent is under test: a docket of it is open"
+    },
+    {
+      "code": 6046,
+      "name": "NewestRound",
+      "msg": "the newest round is kept (the next round opens from it)"
+    },
+    {
+      "code": 6047,
+      "name": "ClaimWindow",
+      "msg": "the claim window is still open"
+    },
+    {
+      "code": 6048,
+      "name": "PlantAccounts",
+      "msg": "the plant accounts do not match the round's unclaimed plants (plant, planter) in index order"
+    },
+    {
+      "code": 6049,
+      "name": "RunnerCannotDeposit",
+      "msg": "the runner key cannot stand surety or run an Open League agent"
+    },
+    {
+      "code": 6050,
+      "name": "Closing",
+      "msg": "the program is closing"
+    },
+    {
+      "code": 6051,
+      "name": "NotClosing",
+      "msg": "only while closing"
+    },
+    {
+      "code": 6052,
+      "name": "StillOpen",
+      "msg": "accounts are still open: close them first"
+    },
+    {
+      "code": 6053,
+      "name": "RecordShort",
+      "msg": "record: fewer runs than required in this model version"
+    },
+    {
+      "code": 6054,
+      "name": "RecordTaken",
+      "msg": "record: more runs taken than allowed"
+    },
+    {
+      "code": 6055,
+      "name": "RecordRecent",
+      "msg": "record: the record does not reach back to the required round"
+    },
+    {
+      "code": 6056,
+      "name": "DuplicateCanary",
+      "msg": "a KEY plant's canary is already a canary of this round"
+    },
+    {
+      "code": 6057,
+      "name": "BadTarget",
+      "msg": "a REPORT plant's target must not be a multiple of 1,000 lamports (every number of the task is)"
+    },
+    {
+      "code": 6058,
+      "name": "Expired",
+      "msg": "the unbond request expired: request again"
+    },
+    {
+      "code": 6059,
+      "name": "NoTranscript",
+      "msg": "the docket has no transcript root yet: the runner posts it, or wait one more run window"
+    },
+    {
+      "code": 6060,
+      "name": "RunsStarted",
+      "msg": "a run of this round has started: the withheld plants are fixed"
     }
   ],
   "types": [
@@ -2337,8 +3635,8 @@
     {
       "name": "Agent",
       "docs": [
-        "One model in the lineup (kind 0, house) or an operator's agent (kind 1, Open League, phase 1.5). Its lamports above rent are the",
-        "purse: `assets` of them, of which `orphan` belong to no surety."
+        "One model in the lineup (kind 0, house) or an operator's agent (kind 1, Open League). Its lamports above rent are the purse:",
+        "`assets` of them, of which `orphan` belong to no surety."
       ],
       "type": {
         "kind": "struct",
@@ -2405,6 +3703,97 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "busy",
+            "docs": [
+              "seq + 1 of the round whose docket of this agent is open (0 = none): no surety exits under test."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pending",
+            "docs": [
+              "A lineup change waiting for its slot (`set_agent` → `apply_agent`)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "pending_active",
+            "type": "bool"
+          },
+          {
+            "name": "pending_model",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "pending_at",
+            "type": "u64"
+          },
+          {
+            "name": "record",
+            "docs": [
+              "The record of the current epoch (`require_record`)."
+            ],
+            "type": {
+              "defined": {
+                "name": "Record"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AgentClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AgentPending",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "model",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "at",
+            "type": "u64"
           }
         ]
       }
@@ -2438,6 +3827,10 @@
           {
             "name": "epoch",
             "type": "u32"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
           }
         ]
       }
@@ -2461,6 +3854,18 @@
           },
           {
             "name": "lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClosingBegun",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "slot",
             "type": "u64"
           }
         ]
@@ -2552,6 +3957,47 @@
           {
             "name": "fund_bump",
             "type": "u8"
+          },
+          {
+            "name": "pending_runner",
+            "docs": [
+              "A runner rotation waiting for its slot (default = none)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "runner_at",
+            "type": "u64"
+          },
+          {
+            "name": "delay_floor",
+            "docs": [
+              "After `rotation_delay` was lowered: the old delay still applies until `delay_floor_until`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "delay_floor_until",
+            "type": "u64"
+          },
+          {
+            "name": "league_active",
+            "type": "u16"
+          },
+          {
+            "name": "agents_live",
+            "docs": [
+              "Agent and Round accounts still open (closing needs both at 0)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "rounds_live",
+            "type": "u64"
+          },
+          {
+            "name": "closing",
+            "type": "bool"
           }
         ]
       }
@@ -2718,6 +4164,9 @@
     },
     {
       "name": "DocketSettled",
+      "docs": [
+        "`forfeited`: an Open League agent that started no run; its purse share went to the runner fund and it left the league."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -2773,6 +4222,10 @@
             "type": "u64"
           },
           {
+            "name": "forfeited",
+            "type": "bool"
+          },
+          {
             "name": "assets_after",
             "type": "u64"
           },
@@ -2816,6 +4269,22 @@
           {
             "name": "to",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FundSpilled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "lamports",
+            "type": "u64"
           }
         ]
       }
@@ -2912,6 +4381,41 @@
           },
           {
             "name": "nudge_every",
+            "type": "u8"
+          },
+          {
+            "name": "rotation_delay",
+            "docs": [
+              "Slots between `propose_runner` / `set_agent` and their effect (a lowered delay waits out the old one first)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "claim_window",
+            "docs": [
+              "Slots after a round settles during which its planters claim; then `reap_round`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "runner_fund_cap",
+            "docs": [
+              "The runner fund above this (and its rent) spills into the newest round's purse pool."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "league_bond",
+            "docs": [
+              "The Open League's minimum bond (the operator's purse)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "league_seats",
+            "docs": [
+              "Open League seats; 0 = the league is closed."
+            ],
             "type": "u8"
           }
         ]
@@ -3027,6 +4531,112 @@
           {
             "name": "to_treasury",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlantsWithheld",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "mask",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Record",
+      "docs": [
+        "An agent's record in its current model epoch (reset when the exact model version changes): what `require_record` checks by CPI."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "start_round",
+            "docs": [
+              "The round of the epoch's first started run (`NO_ROUND` until then)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "runs",
+            "docs": [
+              "Started runs (VOID excluded)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "clean",
+            "docs": [
+              "CLEAN or FLAGGED runs."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "taken",
+            "docs": [
+              "BENT or BENT_LIED runs."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lied",
+            "docs": [
+              "BENT_LIED or FALSE_REPORT runs."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RecordView",
+      "docs": [
+        "What `require_record` returns (return data, so a calling program reads it after the CPI)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent",
+            "type": "u16"
+          },
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "epoch",
+            "type": "u32"
+          },
+          {
+            "name": "model",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "record",
+            "type": {
+              "defined": {
+                "name": "Record"
+              }
+            }
           }
         ]
       }
@@ -3193,6 +4803,52 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "params",
+            "docs": [
+              "The parameters this round runs under (copied at `open_round`)."
+            ],
+            "type": {
+              "defined": {
+                "name": "Params"
+              }
+            }
+          },
+          {
+            "name": "claimed_mask",
+            "docs": [
+              "Plants whose planter claimed (bit j)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "settle_slot",
+            "docs": [
+              "The slot the round settled (the claim window counts from it)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "spilled",
+            "docs": [
+              "Lamports the runner fund spilled into this round's purse pool."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "withheld",
+            "docs": [
+              "Plants the registry never delivered (bit j), marked by the runner before the first run: they cannot be taken."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "runs_started",
+            "docs": [
+              "Runs started in this round (the withheld mask is fixed once one starts)."
+            ],
+            "type": "u16"
           }
         ]
       }
@@ -3240,6 +4896,42 @@
           {
             "name": "lineup_assets",
             "type": "u64"
+          },
+          {
+            "name": "params",
+            "type": {
+              "defined": {
+                "name": "Params"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoundReaped",
+      "docs": [
+        "A settled round closed: unclaimed bounties to the runner fund (to the planters while closing), every plant's rent to its planter,",
+        "the round's rent to its payer."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "to_fund",
+            "type": "u64"
+          },
+          {
+            "name": "to_planters",
+            "type": "u64"
+          },
+          {
+            "name": "payer",
+            "type": "pubkey"
           }
         ]
       }
@@ -3422,7 +5114,8 @@
     {
       "name": "RunnerFund",
       "docs": [
-        "12% of plant prices: the runner's inference bills and transaction fees, drawn under a per-round cap."
+        "12% of plant prices: the runner's inference bills and transaction fees, drawn under a per-round cap. Above its cap it spills into",
+        "the purses; it also receives what planters never claimed and the shares an Open League agent forfeits by not running."
       ],
       "type": {
         "kind": "struct",
@@ -3441,6 +5134,41 @@
           },
           {
             "name": "drawn_this_round",
+            "type": "u64"
+          },
+          {
+            "name": "reaped_in",
+            "type": "u64"
+          },
+          {
+            "name": "forfeits_in",
+            "type": "u64"
+          },
+          {
+            "name": "spilled",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RunnerRotation",
+      "docs": [
+        "A runner rotation proposed (`pending` set, `at` its slot), applied (`pending` default) or cancelled."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending",
+            "type": "pubkey"
+          },
+          {
+            "name": "at",
             "type": "u64"
           }
         ]
@@ -3543,6 +5271,13 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "unbond_delay",
+            "docs": [
+              "The unbond delay in force when the request was made (a later parameter change does not move it)."
+            ],
+            "type": "u64"
           }
         ]
       }
@@ -3563,7 +5298,7 @@
           {
             "name": "kind",
             "docs": [
-              "0 deposit, 1 unbond requested, 2 withdrawn"
+              "0 deposit, 1 unbond requested, 2 withdrawn, 3 paid out at closing"
             ],
             "type": "u8"
           },
@@ -3578,6 +5313,31 @@
           {
             "name": "assets_after",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TranscriptPosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "agent",
+            "type": "u16"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }

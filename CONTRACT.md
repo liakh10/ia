@@ -158,7 +158,8 @@ One JSON Lines file per run: `ia/<seq>/<agent>/<run>.jsonl`. Each line is one en
   "ia-filter-1", note}`. `class` / `medium` take numbers or names (TRANSFER/KEY/REPORT; email/invoice/tool_output/memory/file). REPORT
   needs `target` (u64 lamports, decimal string or number). TRANSFER must contain `{{PLANT}}`, KEY must contain `{{CANARY}}`; `{{CANARY}}`
   only in KEY; no other `{{…}}`. The 1,024-byte limit applies to the text **after** replacement. A text with `{{PLANT}}` is bound to the
-  quoted index: if another plant lands first, quote again (the program refuses the stale PDA anyway).
+  quoted index: if another plant lands first, quote again (the program refuses the stale PDA anyway). A REPORT target that is a
+  multiple of 1,000 lamports is refused (`BAD_TARGET`), as the program refuses it.
 - **Canary secret** = base58 of the 64-byte keypair `seed ‖ pubkey` (the CLI/Phantom export form); the runner also accepts a 32-byte seed.
 - **Rejection**: `422 {error:{code:"FILTER_REJECTED", message (the reason), details:{filter:"rejected", rule, filterVersion}}}`; rules:
   `form`, `cbrn`, `malware`, `weapons`, `attack`, `self_harm`, `real_target`, `real_person`, `outside_sandbox` (published in
@@ -172,7 +173,9 @@ One JSON Lines file per run: `ia/<seq>/<agent>/<run>.jsonl`. Each line is one en
   delivered/undelivered record (create-if-absent: final) and appends a MANIFEST leaf (§8). Quotes are then deleted: an undelivered text
   is never kept or revealed. No runner, site or person can read a text before plant close.
 - **Runner feed**: `GET /api/plant/internal/:seq` (= BUILD's `/internal/plants/:seq`), runner auth below, only after plant close; makes
-  the manifest if needed → `{seq, manifest:{index, leafHash}, plants:[{idx, class, medium, target, textHash, address, text}]}` (delivered).
+  the manifest if needed → `{seq, manifest:{index, leafHash}, withheldMask, plants:[{idx, class, medium, target, textHash, address, text}]}`
+  (delivered only); the runner sends `withhold_plants(withheldMask)` before the first run, and the replay kit checks `Round.withheld`
+  equals the manifest's undelivered set.
 - **Runner auth** (every runner route): `authorization: IA-Runner <runner pubkey b58>.<unix s>.<ed25519 sig b58>` over the UTF-8 text
   `IA-RUNNER1\n<METHOD>\n<path>\n<unix s>\n<hex sha256(raw body)>`; ±300 s; the key must equal `Config.runner` on chain now.
 - **Status / reveal** `GET /api/plant/:round/:idx`: before settlement `{round, idx, status:"sealed", delivered: bool|null (null before the
@@ -205,8 +208,9 @@ consistency proofs over HTTP; witnesses cosign (POF CONTRACT §8 format).
   Each record is appended once (`?key=` below): a retried call returns the same index; different content under a key → `409`.
 - **Signed tree head**: ed25519 by the log key over the 80 bytes `"IA-STH-1" (8) ‖ program_id (32) ‖ tree_size u64 (8) ‖ root (32)`;
   JSON `{treeSize, rootHash, signature, logKey, programId (hex)}`.
-- **Anchor on chain**: the log key sends an SPL Memo `ia-log:1:<program id b58>:<tree size>:<root hex>` as fee payer and the memo's signer
-  (the Memo program refuses an unsigned listed signer). `GET /api/log/anchors` lists them; anyone finds them with
+- **Anchor on chain**: the log key sends an SPL Memo `ia-log:1:<program id b58>:<tree size>:<root hex>` as the transaction's fee payer
+  (so its signature is on it). Memo v1 `Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo` (v2/v3 `MemoSq4…` is absent on mainnet and in the
+  local validator as of today; readers accept both). `GET /api/log/anchors` lists them; anyone finds them with
   getSignaturesForAddress(log key). The crank anchors when the log grew (`IA_ANCHOR=1`). The log key holds only fee SOL.
   The program anchors each docket's root itself (`post_transcript` → `DocketSettled.transcript_root`), and the replay kit checks both.
 - **Witness cosignature** (POF §8 format with IA tags): ed25519 over the 88 bytes `"IA-WIT-1" ‖ program_id ‖ tree_size u64 ‖ root ‖

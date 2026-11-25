@@ -1,3 +1,4 @@
-node_modules/
 dist/*.mjs
+node_modules/
 test/.run/
+test/e2e/.run/

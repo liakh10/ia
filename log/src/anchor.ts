@@ -1,10 +1,10 @@
-/* Heads anchored on chain (CONTRACT §8): the log key sends a memo `ia-log:1:<program id>:<tree size>:<root hex>` with itself as
-   the fee payer and the memo's signer. The SPL Memo program refuses a listed signer that did not sign, so the chain records
-   "the log key published this head at this slot". Anyone finds the anchors with getSignaturesForAddress(log key) and checks
+/* Heads anchored on chain (CONTRACT §8): the log key sends an SPL Memo `ia-log:1:<program id>:<tree size>:<root hex>` as the
+   transaction's fee payer (so its signature is on the transaction): the chain records "the log key published this head at this
+   slot". Anyone finds the anchors with getSignaturesForAddress(log key) and checks
    any later head against them with a consistency proof. A docket's transcript root is also anchored by the program itself
    (post_transcript → DocketSettled.transcript_root). */
 import { IaError, b58decode, hex, toB58, untext } from './codec.js';
-import { MEMO_PROGRAM, memoTransaction, sendAndConfirm, type Rpc } from './rpc.js';
+import { MEMO_PROGRAMS, memoTransaction, sendAndConfirm, type Rpc } from './rpc.js';
 import type { Signer } from './keys.js';
 
 export interface Anchor { treeSize: number; rootHash: string; slot: number; signature: string; blockTime: number | null }
@@ -34,7 +34,7 @@ export async function findAnchors(rpc: Rpc, logKey: string, programId: string, l
     const keys: string[] = t.transaction.message.accountKeys;
     if (keys[0] !== logKey) continue; // the log key must be the fee payer (so it signed)
     for (const ix of t.transaction.message.instructions) {
-      if (keys[ix.programIdIndex] !== MEMO_PROGRAM) continue;
+      if (!MEMO_PROGRAMS.includes(keys[ix.programIdIndex])) continue;
       if (!ix.accounts.some((a: number) => keys[a] === logKey)) continue;
       let memo: string;
       try { memo = untext(b58decode(ix.data)); } catch { continue; }

@@ -53,9 +53,10 @@ async function makeCase({ lie = true, balanceLie = false, swapArg = false } = {}
   });
   const pr = V.parseRun(jsonl);
   const dRoot = V.docketRoot([pr.runRoot]);
-  const settled = { round: seq, agent, epoch: 0, purseAtOpen, tiers: Uint8Array.of(rules.tierOf(x, docket)), trails: [x.trail], taken: [x.taken | x.reportTaken], bounties: [], bountyTotal: 0n, purseShare: 0n, assetsAfter: 0n, transcriptRoot: dRoot };
+  docket.withheld = 2;
+  const settled = { round: seq, agent, epoch: 0, purseAtOpen, tiers: Uint8Array.of(rules.tierOf(x, docket)), trails: [x.trail], taken: [rules.settledTaken(x, docket)], bounties: [], bountyTotal: 0n, purseShare: 0n, assetsAfter: 0n, transcriptRoot: dRoot };
   const ev = (name, data) => ({ name, data, slot: 1, signature: 'sig', blockTime: null });
-  const roundEvents = [ev('RoundOpened', { seq, seed }), ...planted.map(p => ev('Planted', p)), ev('DocketOpened', { round: seq, agent, purseAtOpen, runCount: 1, operating: t.operating }), ev('DocketSettled', settled)];
+  const roundEvents = [ev('RoundOpened', { seq, seed }), ...planted.map(p => ev('Planted', p)), ev('PlantsWithheld', { round: seq, mask: 2 }), ev('DocketOpened', { round: seq, agent, purseAtOpen, runCount: 1, operating: t.operating }), ev('DocketSettled', settled)];
   const docketEvents = [ev('RunStarted', { round: seq, agent, run: 0, session: 'S' }), ...acted.reverse().map(a => ev('Acted', a))];
   // the log's side
   const sg = signer(), log = new V.TransparencyLog(store(), sg, fromB58(PROGRAM));

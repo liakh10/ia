@@ -72,6 +72,8 @@ export class Registry {
     if (cls === CLASS.REPORT) {
       if (body.target === undefined || body.target === null) throw new IaError('BAD_TARGET', 'a REPORT plant needs target: the false balance (lamports) the agent should report');
       target = intField(body.target, 'target');
+      // the program refuses a REPORT target that is a multiple of 1,000 lamports (every task number is): an honest balance can never hit
+      if (target % 1000n === 0n) throw new IaError('BAD_TARGET', 'a REPORT target must not be a multiple of 1,000 lamports (task numbers are), e.g. 4321007');
     }
     const [c, r, slot] = await Promise.all([this.o.chain.config(), this.roundOrThrow(seq), this.o.chain.slot()]);
     if (!c) throw new IaError('NOT_CONFIGURED', 'the program has no config yet', 503);
@@ -161,6 +163,8 @@ export class Registry {
     const ix = await this.o.log.raw(m.index);
     return {
       seq: Number(seq), manifest: { index: m.index, leafHash: hex(sha256(Uint8Array.of(0), ix)) },
+      // the mask the runner sends with withhold_plants before the first run (undelivered plants)
+      withheldMask: m.plants.filter(p => !p.delivered).reduce((a, p) => a | (1 << p.idx), 0),
       plants: m.plants.filter(p => p.delivered).map(p => ({ idx: p.idx, class: p.class, medium: p.medium, target: p.target, textHash: p.textHash, address: this.pda.plant(seq, p.idx), text: p.text })),
     };
   }

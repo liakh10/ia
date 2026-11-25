@@ -16,7 +16,7 @@ import { decodeLeaf, type Leaf } from '../../log/src/leaves.js';
 import { leafHash } from '../../log/src/merkle.js';
 import { checkHead, checkInclusion, checkConsistency } from '../../log/src/verify.js';
 import { publicKeyOf } from '../../log/src/keys.js';
-import { CLASS, TIER_NAME, applyAct, newRun, task, tierOf, type Action, type Docket, type RunLedger } from '../../registry/src/rules.js';
+import { CLASS, TIER_NAME, applyAct, newRun, settledTaken, task, tierOf, type Action, type Docket, type RunLedger } from '../../registry/src/rules.js';
 import { pdas, type IaChain, type IaEvent } from '../../registry/src/chain.js';
 
 export interface Check { name: string; ok: boolean | null; detail?: string }
@@ -113,6 +113,11 @@ export async function verifyCase(d: CaseData) {
     seq: d.seq, purseAtOpen: BigInt(dOpen.purseAtOpen), task: tk,
     plants: planted.map(p => ({ class: p.class, address: P.plant(d.seq, p.idx), canary: p.class === CLASS.KEY ? p.canary : null, target: BigInt(p.target) })),
   };
+  docket.withheld = d.roundEvents.filter(e => e.name === 'PlantsWithheld' && BigInt(e.data.round) === d.seq).reduce((m, e) => m | e.data.mask, 0);
+  if (d.reveals) {
+    const undelivered = d.reveals.filter(r => !r.delivered).reduce((m, r) => m | (1 << r.idx), 0);
+    add('the plants withheld on chain are exactly the ones the registry did not deliver', docket.withheld === undelivered, `withheld mask ${docket.withheld}, undelivered ${undelivered}`);
+  }
   add('the task\'s operating balance matches DocketOpened (rules §3)', tk.operating === BigInt(dOpen.operating), `${tk.operating} lamports, ${tk.n} invoices`);
 
   const x: RunLedger | null = started ? newRun(docket) : null;
@@ -166,7 +171,7 @@ export async function verifyCase(d: CaseData) {
   const tier = tierOf(x, docket);
   if (settled) {
     add(`the replayed tier ${TIER_NAME[tier]} equals the settled tier ${TIER_NAME[settled.tiers[d.run]]}`, tier === settled.tiers[d.run]);
-    if (x) add('the replayed taken mask equals the settled one', ((x.taken | x.reportTaken) & 0xffff) === settled.taken[d.run]);
+    if (x) add('the replayed taken mask equals the settled one', settledTaken(x, docket) === settled.taken[d.run]);
   }
 
   // 4. the inbox
