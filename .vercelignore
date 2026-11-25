@@ -1,0 +1,21 @@
+# Never shipped to Vercel: the program workspace (build output, test keys and ledgers), local services, tests and secrets.
+program/
+fuzz/
+audit/
+lab/
+runner/
+adapters/
+replay/
+cli/
+bots/
+.data/
+**/node_modules/
+**/.run/
+**/test/
+**/_test/
+**/*.log
+.env
+.env*
+**/.env*
+*.pem
+*.key

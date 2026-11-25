@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forecasts · Internal Affairs</title>
+<meta name="description" content="Free calls of CLEAN or BENT per model per test, signed messages, points on a public board. No money in or out.">
+<link rel="canonical" href="https://ia-sol.vercel.app/docs/forecasts">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Internal Affairs">
+<meta property="og:title" content="Forecasts · Internal Affairs">
+<meta property="og:description" content="Free calls of CLEAN or BENT per model per test, signed messages, points on a public board. No money in or out.">
+<meta property="og:url" content="https://ia-sol.vercel.app/docs/forecasts">
+<meta name="twitter:card" content="summary">
+
+<script src="/config.js"></script>
+<script type="module" src="/ui/app.js"></script>
+<script type="module" src="/ui/docs.js"></script>
+</head>
+<body class="page-docs" data-page="docs">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/" aria-label="Internal Affairs, home"><span class="brand-mark" aria-hidden="true">IA</span><span class="brand-name">Internal Affairs</span></a>
+  <nav class="nav" id="nav" aria-label="Main"><a href="/">Test</a><a href="/integrity">Integrity Index</a><a href="/cases">Case files</a><a href="/plant">Plant</a><a href="/sureties">Sureties</a><a href="/forecasts">Forecasts</a><a href="/docs" aria-current="page">Docs</a></nav>
+  <div class="top-end"><button class="btn small ghost" type="button" data-wallet hidden>Connect</button><button class="menu" type="button" aria-expanded="false" aria-controls="nav"><span class="menu-bars"></span><span class="sr">Menu</span></button></div>
+</header>
+<main id="main">
+<div class="docs">
+  <aside class="docs-side" aria-label="Sections">
+    <details class="docs-pick" open><summary>The paper</summary><ol class="docs-list"><li><a href="/docs"><span class="n">01</span>Abstract</a></li><li><a href="/docs/trust"><span class="n">02</span>Trust points</a></li><li><a href="/docs/methodology"><span class="n">03</span>Methodology</a></li><li><a href="/docs/tiers"><span class="n">04</span>Tiers</a></li><li><a href="/docs/plants"><span class="n">05</span>Plants</a></li><li><a href="/docs/purses-and-sureties"><span class="n">06</span>Purses and sureties</a></li><li><a href="/docs/integrity-index"><span class="n">07</span>Integrity Index</a></li><li><a href="/docs/verification"><span class="n">08</span>Verification</a></li><li><a href="/docs/forecasts" aria-current="page"><span class="n">09</span>Forecasts</a></li><li><a href="/docs/threat-model"><span class="n">10</span>Threat model</a></li><li><a href="/docs/legal"><span class="n">11</span>Legal and ethics</a></li><li><a href="/docs/right-of-reply"><span class="n">12</span>Right of reply</a></li><li><a href="/docs/parameters"><span class="n">13</span>Parameters and fees</a></li><li><a href="/docs/phases"><span class="n">14</span>Phases</a></li><li><a href="/docs/glossary"><span class="n">15</span>Glossary</a></li></ol></details>
+  </aside>
+  <article class="prose" data-docs>
+    <p class="kicker">Free calls of CLEAN or BENT per model per test, signed messages, points on a public board. No money in or out.</p>
+    <h1 id="forecasts">Forecasts</h1>
+<p>Before a test's plant window closes, any wallet can call each model in the lineup:</p>
+<div class="code"><button class="code-copy" type="button" aria-label="Copy code">Copy</button><pre><code>ia-forecast:&lt;test&gt;:&lt;model&gt;:&lt;CLEAN|BENT&gt;</code></pre></div>
+<p>The wallet signs that text as a message. It is not a transaction: nothing is paid, nothing is held, nothing is paid out. The first
+call per wallet per model per test stands. Forecasts go into the transparency log, so the board can be rebuilt by anyone.</p>
+<h2 id="scoring">Scoring<a class="anchor" href="#scoring" aria-label="Link to this section">#</a></h2>
+<p>When the model's docket settles, its outcome <code>o</code> is the share of its scored runs that went BENT (BENT and BENT+LIED count as BENT;
+VOID and INCOMPLETE score nothing). A call is <code>p = 1</code> for BENT and <code>p = 0</code> for CLEAN, and scores
+<code>round(100 × (1 − 2 (p − o)²))</code> points: a right call on a clear outcome scores 100, a wrong one −100, and a call on a split docket
+scores in between.</p>
+<p>There is no prize pool. Forecasts are a public record of who read the models best, not a stake.</p>
+    <nav class="docs-next" aria-label="Pages"><a class="prev" href="/docs/verification"><span>Previous</span>Verification</a><a class="next" href="/docs/threat-model"><span>Next</span>Threat model</a></nav>
+  </article>
+  <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ol><li class="d2"><a href="#scoring">Scoring</a></li></ol></aside>
+</div>
+</main>
+<footer class="foot">
+  <div class="foot-grid">
+    <div><div class="ca" data-ca></div><p class="foot-links" data-token-links></p></div>
+    <div><h2>Watch</h2><ul><li><a href="/">The current test</a></li><li><a href="/live">Live runs</a></li><li><a href="/integrity">Integrity Index</a></li><li><a href="/cases">Case files</a></li></ul></div><div><h2>Take part</h2><ul><li><a href="/plant">Plant bait</a></li><li><a href="/sureties">Stand surety</a></li><li><a href="/forecasts">Free forecasts</a></li></ul></div><div><h2>Check</h2><ul><li><a href="/docs/trust">Trust points</a></li><li><a href="/docs/methodology">Methodology</a></li><li><a href="/log">Transparency log</a></li><li><a href="/status">Status</a></li></ul></div><div><h2>Record</h2><ul><li><a href="/docs">The paper</a></li><li><a href="/developers">Developers</a></li><li><a href="/changelog">Changelog</a></li><li><a href="/reports">Test reports</a></li><li><a href="/docs/right-of-reply">Right of reply</a></li></ul></div>
+  </div>
+  <dl class="foot-facts">
+    <div><dt>Program</dt><dd class="mono">CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr</dd></div>
+  </dl>
+  <p class="foot-note">Rates are from our tests, per exact model version, with 95% intervals and every run published. Agents act only inside a closed program ledger against addresses we own; real SOL moves only at settlement, by rule. Forecasts are free.</p>
+</footer>
+</body>
+</html>

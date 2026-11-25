@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Changelog · Internal Affairs</title>
+<meta name="description" content="What changed in Internal Affairs, part by part.">
+<link rel="canonical" href="https://ia-sol.vercel.app/changelog">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Internal Affairs">
+<meta property="og:title" content="Changelog · Internal Affairs">
+<meta property="og:description" content="What changed in Internal Affairs, part by part.">
+<meta property="og:url" content="https://ia-sol.vercel.app/changelog">
+<meta name="twitter:card" content="summary">
+
+<script src="/config.js"></script>
+<script type="module" src="/ui/app.js"></script>
+<script type="module" src="/ui/docs.js"></script>
+</head>
+<body class="page-docs" data-page="docs">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/" aria-label="Internal Affairs, home"><span class="brand-mark" aria-hidden="true">IA</span><span class="brand-name">Internal Affairs</span></a>
+  <nav class="nav" id="nav" aria-label="Main"><a href="/">Test</a><a href="/integrity">Integrity Index</a><a href="/cases">Case files</a><a href="/plant">Plant</a><a href="/sureties">Sureties</a><a href="/forecasts">Forecasts</a><a href="/docs" aria-current="page">Docs</a></nav>
+  <div class="top-end"><button class="btn small ghost" type="button" data-wallet hidden>Connect</button><button class="menu" type="button" aria-expanded="false" aria-controls="nav"><span class="menu-bars"></span><span class="sr">Menu</span></button></div>
+</header>
+<main id="main">
+<div class="docs">
+  <aside class="docs-side" aria-label="Sections">
+    <details class="docs-pick" open><summary>Record</summary><ol class="docs-list"><li><a href="/changelog" aria-current="page"><span class="n">00</span>Changelog</a></li></ol></details>
+  </aside>
+  <article class="prose" data-docs>
+    
+    <h1 id="changelog">Changelog</h1><p>Every change to the program, the runner, the registry, the log, the API and this site, from the repository history.</p><h2 id="d-2026-11-25">2026-11-25</h2><ul class="commits"><li><span class="mono">9ef52a2</span> runner + adapters: task generator (rules.mjs = rules.rs on the vectors), 5 scenario templates, sandbox (per-run session keys, caps, egress allow-list), RFC 8785 transcripts with RFC 9162 roots, crank + runTest, live stream; adapters for Anthropic, Gemini, OpenAI-compatible with the budget guard and spend ledger; MCP enrolment endpoint for community agents</li><li><span class="mono">0987905</span> devx: open_round marks the lineup busy (writable lineup accounts in the SDK builder), sdk README, the indexer's cron writer</li><li><span class="mono">8a03722</span> CONTRACT §9 (devx): the exact forms of /v1, the Index definitions, case ids and quotes, forecasts and points, MCP tools</li><li><span class="mono">8b00aa4</span> devx: ia CLI (index, case, cases, round, purses, investigators, task, quote, verify, sync), case-file post drafts for X/TG (drafts only, copy lint), docs-src/developers.md; /v1 aligned with the verifier's log API (transcripts, ?key= lookups, forecasts forwarded to and read from FORECAST leaves); log-route tests</li><li><span class="mono">4a53469</span> devx: indexer (events -&gt; rounds, plants, dockets, runs; every act and tier replayed from the rules, mismatches kept), /v1 API (Integrity Index with Wilson bounds per exact version, cases, rounds, plants, purses, quote with unsigned plant tx, investigators, signed forecasts + board, log head/proof/find, status, OpenAPI 3.1), ia-mcp read tools (stdio + Streamable HTTP) with untrusted-text labels; SDK synced to the new IDL (records, leaves, events shaped by IDL type); 13 SDK + 6 API/MCP unit tests</li><li><span class="mono">4c71f41</span> verifier: plant registry (quote, filter ia-filter-1, sealed store, delivery manifest, runner feed, reveal), RFC 9162 log (7 leaf kinds, signed heads, memo anchors, cosign), replay kit (case, rates, compare, env); CONTRACT §7-§8; 30 tests</li><li><span class="mono">d4bdb92</span> devx: @ia/sdk 0.1.0, zero-dep: rules byte for byte with rules.rs (cross-checked with runner/task on 200 seeds), ledger replay with tiers and trails, IDL-driven decoders, events, instruction builders, unsigned transactions, RFC 9162 + canonical JSON transcript roots, Wilson bounds, forecasts; 12 unit tests</li><li><span class="mono">61659aa</span> CONTRACT.md moved into the repo (the shared contract; _x/ia/CONTRACT.md is now a pointer)</li><li><span class="mono">dc45f86</span> program: ia scaffold: rounds, plants (TRANSFER/KEY/REPORT), closed-ledger acts, tiers to BENT_LIED, bounties, sureties, runner fund; 8 unit + 23 local-validator tests</li></ul>
+    <nav class="docs-next" aria-label="Pages"><span></span></nav>
+  </article>
+  <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ol><li class="d2"><a href="#d-2026-11-25">2026-11-25</a></li></ol></aside>
+</div>
+</main>
+<footer class="foot">
+  <div class="foot-grid">
+    <div><div class="ca" data-ca></div><p class="foot-links" data-token-links></p></div>
+    <div><h2>Watch</h2><ul><li><a href="/">The current test</a></li><li><a href="/live">Live runs</a></li><li><a href="/integrity">Integrity Index</a></li><li><a href="/cases">Case files</a></li></ul></div><div><h2>Take part</h2><ul><li><a href="/plant">Plant bait</a></li><li><a href="/sureties">Stand surety</a></li><li><a href="/forecasts">Free forecasts</a></li></ul></div><div><h2>Check</h2><ul><li><a href="/docs/trust">Trust points</a></li><li><a href="/docs/methodology">Methodology</a></li><li><a href="/log">Transparency log</a></li><li><a href="/status">Status</a></li></ul></div><div><h2>Record</h2><ul><li><a href="/docs">The paper</a></li><li><a href="/developers">Developers</a></li><li><a href="/changelog">Changelog</a></li><li><a href="/reports">Test reports</a></li><li><a href="/docs/right-of-reply">Right of reply</a></li></ul></div>
+  </div>
+  <dl class="foot-facts">
+    <div><dt>Program</dt><dd class="mono">CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr</dd></div>
+  </dl>
+  <p class="foot-note">Rates are from our tests, per exact model version, with 95% intervals and every run published. Agents act only inside a closed program ledger against addresses we own; real SOL moves only at settlement, by rule. Forecasts are free.</p>
+</footer>
+</body>
+</html>

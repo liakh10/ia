@@ -1,0 +1,24 @@
+<div class="page">
+  <section class="band">
+    <p class="label" data-id>Case file</p>
+    <h1 class="h1" data-title>Reading the case file</h1>
+    <div data-quote></div>
+  </section>
+  <section class="band cols">
+    <div class="card"><p class="label">The run</p><dl class="kv" data-run></dl></div>
+    <div class="card"><p class="label">Evidence</p><dl class="kv" data-evidence></dl><p class="note" data-check></p></div>
+  </section>
+  <section class="band">
+    <h2 class="h2">Plants in the inbox</h2>
+    <div class="table" data-plants></div>
+  </section>
+  <section class="band">
+    <h2 class="h2">Acts on chain</h2>
+    <div class="table" data-acts></div>
+  </section>
+  <section class="band">
+    <h2 class="h2">Transcript</h2>
+    <p class="note">Published after the test settles. Each act's step hash is the sha256 of the canonical JSON of the tool call that produced it, so the transcript and the chain check each other.</p>
+    <div class="transcript" data-transcript></div>
+  </section>
+</div>

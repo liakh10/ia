@@ -1,0 +1,18 @@
+{
+  "name": "ia",
+  "private": true,
+  "type": "module",
+  "description": "Internal Affairs: the site, the read API, the MCP server and the plant registry and log functions, deployed together",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:site": "node site/build.mjs",
+    "check:site": "node site/build.mjs --check",
+    "lab": "node lab/serve.mjs",
+    "lab:chain": "zsh lab/chain.sh"
+  },
+  "dependencies": {
+    "@vercel/blob": "2.9.0"
+  }
+}

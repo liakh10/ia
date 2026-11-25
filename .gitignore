@@ -7,3 +7,4 @@ target/
 program/test/.run/
 .data/
 runner/test/.run/
+lab/.run/

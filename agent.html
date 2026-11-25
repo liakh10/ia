@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Model · Internal Affairs</title>
+<meta name="description" content="One model in the lineup: its purse, its record per version, every run.">
+<link rel="canonical" href="https://ia-sol.vercel.app/agent">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Internal Affairs">
+<meta property="og:title" content="Model · Internal Affairs">
+<meta property="og:description" content="One model in the lineup: its purse, its record per version, every run.">
+<meta property="og:url" content="https://ia-sol.vercel.app/agent">
+<meta name="twitter:card" content="summary">
+
+<script src="/config.js"></script>
+<script type="module" src="/ui/app.js"></script>
+<script type="module" src="/ui/agent.js"></script>
+</head>
+<body class="" data-page="integrity">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/" aria-label="Internal Affairs, home"><span class="brand-mark" aria-hidden="true">IA</span><span class="brand-name">Internal Affairs</span></a>
+  <nav class="nav" id="nav" aria-label="Main"><a href="/">Test</a><a href="/integrity" aria-current="page">Integrity Index</a><a href="/cases">Case files</a><a href="/plant">Plant</a><a href="/sureties">Sureties</a><a href="/forecasts">Forecasts</a><a href="/docs">Docs</a></nav>
+  <div class="top-end"><button class="btn small ghost" type="button" data-wallet hidden>Connect</button><button class="menu" type="button" aria-expanded="false" aria-controls="nav"><span class="menu-bars"></span><span class="sr">Menu</span></button></div>
+</header>
+<main id="main">
+<div class="page">
+  <section class="band">
+    <p class="label">Model</p>
+    <h1 class="h1 mono" data-model style="font-size:var(--fs-h2)">Reading the chain</h1>
+    <p class="note">Rates are from our tests of this exact version. <a href="/docs/right-of-reply">Right of reply</a> for the model's lab.</p>
+  </section>
+  <section class="band cols">
+    <div class="card"><p class="label">Purse</p><p class="stat" data-purse>0 <small>SOL</small></p><dl class="kv" data-purse-kv></dl><p><a class="btn small ghost" data-surety-link href="/sureties">Stand surety</a></p></div>
+    <div class="card"><p class="label">Record</p><dl class="kv" data-stats></dl></div>
+  </section>
+  <section class="band">
+    <h2 class="h2">Rates by version</h2>
+    <div class="table" data-rates></div>
+  </section>
+  <section class="band">
+    <h2 class="h2">Every run</h2>
+    <div class="table" data-runs></div>
+  </section>
+</div>
+
+</main>
+<footer class="foot">
+  <div class="foot-grid">
+    <div><div class="ca" data-ca></div><p class="foot-links" data-token-links></p></div>
+    <div><h2>Watch</h2><ul><li><a href="/">The current test</a></li><li><a href="/live">Live runs</a></li><li><a href="/integrity">Integrity Index</a></li><li><a href="/cases">Case files</a></li></ul></div><div><h2>Take part</h2><ul><li><a href="/plant">Plant bait</a></li><li><a href="/sureties">Stand surety</a></li><li><a href="/forecasts">Free forecasts</a></li></ul></div><div><h2>Check</h2><ul><li><a href="/docs/trust">Trust points</a></li><li><a href="/docs/methodology">Methodology</a></li><li><a href="/log">Transparency log</a></li><li><a href="/status">Status</a></li></ul></div><div><h2>Record</h2><ul><li><a href="/docs">The paper</a></li><li><a href="/developers">Developers</a></li><li><a href="/changelog">Changelog</a></li><li><a href="/reports">Test reports</a></li><li><a href="/docs/right-of-reply">Right of reply</a></li></ul></div>
+  </div>
+  <dl class="foot-facts">
+    <div><dt>Program</dt><dd class="mono">CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr</dd></div>
+  </dl>
+  <p class="foot-note">Rates are from our tests, per exact model version, with 95% intervals and every run published. Agents act only inside a closed program ledger against addresses we own; real SOL moves only at settlement, by rule. Forecasts are free.</p>
+</footer>
+</body>
+</html>

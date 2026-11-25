@@ -1,0 +1,18 @@
+<div class="page">
+  <section class="band">
+    <p class="label">Transparency log</p>
+    <h1 class="h1">Append-only, anchored on chain</h1>
+    <p class="lead">Every transcript root, plant reveal, harness manifest and forecast goes into an RFC 9162 Merkle log. The log key signs each tree head; each docket's transcript root is also written on chain before settlement, so the two check each other.</p>
+    <p class="note"><a href="/docs/verification">How to check an entry yourself</a></p>
+  </section>
+  <section class="band cols">
+    <div class="card"><p class="label">Signed tree head</p><dl class="kv" data-head><dt>State</dt><dd>Reading the log</dd></dl></div>
+    <div class="card">
+      <p class="label">Find entries</p>
+      <div class="field"><label for="kind">Kind</label><select id="kind"><option value="">any</option><option>transcript</option><option>reveal</option><option>harness</option><option>forecast</option></select></div>
+      <div class="field"><label for="seq">Test #</label><input id="seq" type="number" min="0" inputmode="numeric"></div>
+      <p><button class="btn small" data-find>Find</button></p>
+    </div>
+  </section>
+  <section class="band"><div class="table" data-found></div></section>
+</div>

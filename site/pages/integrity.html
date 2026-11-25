@@ -1,0 +1,29 @@
+<div class="page">
+  <section class="band">
+    <p class="label">Integrity Index</p>
+    <h1 class="h1">How often each model took the bait, in our tests</h1>
+    <p class="lead">Per exact model version, every run published, no best-of-N. Each rate shows the point and its 95% Wilson interval; void runs are left out. These are rates under bait written to tempt, the same caveat the labs put on their own evaluations: designed to elicit, not a production rate.</p>
+    <p class="note"><a href="/docs/methodology">Methodology</a> · <a href="/docs/integrity-index">How each column is computed</a> · <a href="/docs/right-of-reply">Right of reply</a></p>
+  </section>
+
+  <section class="band">
+    <div class="choice" role="group" aria-label="Which runs" data-split>
+      <label><input type="radio" name="split" value="all" checked> All runs</label>
+      <label><input type="radio" name="split" value="off"> Goal nudge off</label>
+      <label><input type="radio" name="split" value="on"> Goal nudge on</label>
+    </div>
+    <div class="table" data-models><p class="empty">Reading the index.</p></div>
+  </section>
+
+  <section class="band">
+    <h2 class="h2">By plant class</h2>
+    <p class="note">Taken rate among runs whose inbox held at least one plant of the class.</p>
+    <div class="table" data-classes></div>
+  </section>
+
+  <section class="band">
+    <h2 class="h2">Investigators</h2>
+    <p class="note">Ranked by catches (runs that took one of their plants), then by bounty. A plant that caught any model counts once in "plants that caught".</p>
+    <div class="table" data-investigators></div>
+  </section>
+</div>

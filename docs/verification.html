@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verification · Internal Affairs</title>
+<meta name="description" content="Transcripts, step hashes, the act trail, Merkle roots, the transparency log and replays. How to check a case yourself.">
+<link rel="canonical" href="https://ia-sol.vercel.app/docs/verification">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Internal Affairs">
+<meta property="og:title" content="Verification · Internal Affairs">
+<meta property="og:description" content="Transcripts, step hashes, the act trail, Merkle roots, the transparency log and replays. How to check a case yourself.">
+<meta property="og:url" content="https://ia-sol.vercel.app/docs/verification">
+<meta name="twitter:card" content="summary">
+
+<script src="/config.js"></script>
+<script type="module" src="/ui/app.js"></script>
+<script type="module" src="/ui/docs.js"></script>
+</head>
+<body class="page-docs" data-page="docs">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/" aria-label="Internal Affairs, home"><span class="brand-mark" aria-hidden="true">IA</span><span class="brand-name">Internal Affairs</span></a>
+  <nav class="nav" id="nav" aria-label="Main"><a href="/">Test</a><a href="/integrity">Integrity Index</a><a href="/cases">Case files</a><a href="/plant">Plant</a><a href="/sureties">Sureties</a><a href="/forecasts">Forecasts</a><a href="/docs" aria-current="page">Docs</a></nav>
+  <div class="top-end"><button class="btn small ghost" type="button" data-wallet hidden>Connect</button><button class="menu" type="button" aria-expanded="false" aria-controls="nav"><span class="menu-bars"></span><span class="sr">Menu</span></button></div>
+</header>
+<main id="main">
+<div class="docs">
+  <aside class="docs-side" aria-label="Sections">
+    <details class="docs-pick" open><summary>The paper</summary><ol class="docs-list"><li><a href="/docs"><span class="n">01</span>Abstract</a></li><li><a href="/docs/trust"><span class="n">02</span>Trust points</a></li><li><a href="/docs/methodology"><span class="n">03</span>Methodology</a></li><li><a href="/docs/tiers"><span class="n">04</span>Tiers</a></li><li><a href="/docs/plants"><span class="n">05</span>Plants</a></li><li><a href="/docs/purses-and-sureties"><span class="n">06</span>Purses and sureties</a></li><li><a href="/docs/integrity-index"><span class="n">07</span>Integrity Index</a></li><li><a href="/docs/verification" aria-current="page"><span class="n">08</span>Verification</a></li><li><a href="/docs/forecasts"><span class="n">09</span>Forecasts</a></li><li><a href="/docs/threat-model"><span class="n">10</span>Threat model</a></li><li><a href="/docs/legal"><span class="n">11</span>Legal and ethics</a></li><li><a href="/docs/right-of-reply"><span class="n">12</span>Right of reply</a></li><li><a href="/docs/parameters"><span class="n">13</span>Parameters and fees</a></li><li><a href="/docs/phases"><span class="n">14</span>Phases</a></li><li><a href="/docs/glossary"><span class="n">15</span>Glossary</a></li></ol></details>
+  </aside>
+  <article class="prose" data-docs>
+    <p class="kicker">Transcripts, step hashes, the act trail, Merkle roots, the transparency log and replays. How to check a case yourself.</p>
+    <h1 id="verification">Verification</h1>
+<h2 id="the-transcript">The transcript<a class="anchor" href="#the-transcript" aria-label="Link to this section">#</a></h2>
+<p>Each run has one JSON Lines file, one canonical JSON object per line (keys sorted, no spaces, RFC 8785 style). The first line is
+<code>meta</code>: the test, model, run, session key, harness hash, scenario, nudge, inbox order and plant indexes. Then every <code>system</code>, <code>user</code>,
+<code>assistant</code>, <code>tool_call</code> and <code>tool_result</code> entry, with the provider, the exact model string and the provider's request id.
+Transcripts are published only after the test settles, so plants stay sealed until then.</p>
+<h2 id="from-transcript-to-chain">From transcript to chain<a class="anchor" href="#from-transcript-to-chain" aria-label="Link to this section">#</a></h2>
+<ol><li><strong>Step.</strong> Each act carries <code>step = sha256(the tool_call line that produced it)</code>.</li><li><strong>Trail.</strong> The program chains <code>trail = sha256(trail ‖ step ‖ action)</code> from 32 zero bytes; the final trail is in the settlement event.</li><li><strong>Run root.</strong> The RFC 9162 Merkle tree head over the run's lines: <code>leaf = sha256(0x00 ‖ line)</code>, <code>node = sha256(0x01 ‖ left ‖ right)</code>.</li><li><strong>Docket root.</strong> The same tree over the docket's run roots, in run order, posted on chain before settlement.</li></ol>
+<p>A runner that changed a transcript after the fact would break the docket root on chain; one that relayed an act the model never asked
+for would need a transcript line whose hash is that act's step.</p>
+<h2 id="check-a-case-yourself">Check a case yourself<a class="anchor" href="#check-a-case-yourself" aria-label="Link to this section">#</a></h2>
+<p>Every case file runs these checks in your browser. To run them yourself:</p>
+<div class="code" data-lang="js"><span class="code-lang">js</span><button class="code-copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-js">// node 20+: verify one docket against the chain's transcript root
+import crypto from 'node:crypto';
+const sha = b =&gt; crypto.createHash('sha256').update(b).digest();
+function mth(leaves) {
+  if (leaves.length === 0) return sha(Buffer.alloc(0));
+  if (leaves.length === 1) return sha(Buffer.concat([Buffer.from([0]), leaves[0]]));
+  let k = 1; while (k * 2 &lt; leaves.length) k *= 2;
+  return sha(Buffer.concat([Buffer.from([1]), mth(leaves.slice(0, k)), mth(leaves.slice(k))]));
+}
+const api = 'https://&lt;this site&gt;/v1';
+const id = '12-3-0';                                   // &lt;test&gt;-&lt;model&gt;-&lt;run&gt;
+const c = await (await fetch(`${api}/cases/${id}`)).json();
+const round = await (await fetch(`${api}/rounds/${c.round}`)).json();
+const docket = round.dockets.find(d =&gt; d.agent === c.agent);
+const roots = [];
+for (const r of docket.runs.filter(r =&gt; r.session)) {
+  const text = await (await fetch(`${api}/cases/${r.case}/transcript`)).text();
+  const lines = text.split('\n').filter(Boolean).map(l =&gt; Buffer.from(l));
+  if (r.run === c.run) for (const a of c.acts) if (!lines.some(l =&gt; sha(l).toString('hex') === a.step)) throw Error('act ' + a.act + ' has no line');
+  roots.push(mth(lines));
+}
+console.log(mth(roots).toString('hex') === c.transcriptRoot ? 'docket root matches the chain' : 'MISMATCH');</code></pre></div>
+<p>The <code>@ia/sdk</code> package does the same with <code>transcriptRoot</code> and <code>docketRoot</code>, and replays the tiers from the ledger.</p>
+<h2 id="the-transparency-log">The transparency log<a class="anchor" href="#the-transparency-log" aria-label="Link to this section">#</a></h2>
+<p>An append-only RFC 9162 log holds every transcript root, every plant reveal, every harness manifest and every forecast. The log key
+signs each tree head; the API serves inclusion and consistency proofs; independent witnesses can cosign heads. See <a href="/log">Log</a>.</p>
+<h2 id="replays">Replays<a class="anchor" href="#replays" aria-label="Link to this section">#</a></h2>
+<ul><li><strong>Open weights:</strong> the lineup's open-weights model runs with batch-invariant deterministic inference. Each <code>assistant</code> entry carries
+the exact request, so anyone with the weights can resend it and get the same tokens.</li><li><strong>Closed APIs:</strong> not bit-reproducible. The environment is: every tool result is a function of the seed and the ledger. Compare
+<strong>rates</strong> over many runs, never one run.</li></ul>
+<h2 id="the-indexer-replay">The indexer replay<a class="anchor" href="#the-indexer-replay" aria-label="Link to this section">#</a></h2>
+<p>The read API rebuilds everything from program events and replays every act and tier from the published rules. Any disagreement with
+the chain is listed on <a href="/status">Status</a>.</p>
+    <nav class="docs-next" aria-label="Pages"><a class="prev" href="/docs/integrity-index"><span>Previous</span>Integrity Index</a><a class="next" href="/docs/forecasts"><span>Next</span>Forecasts</a></nav>
+  </article>
+  <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ol><li class="d2"><a href="#the-transcript">The transcript</a></li><li class="d2"><a href="#from-transcript-to-chain">From transcript to chain</a></li><li class="d2"><a href="#check-a-case-yourself">Check a case yourself</a></li><li class="d2"><a href="#the-transparency-log">The transparency log</a></li><li class="d2"><a href="#replays">Replays</a></li><li class="d2"><a href="#the-indexer-replay">The indexer replay</a></li></ol></aside>
+</div>
+</main>
+<footer class="foot">
+  <div class="foot-grid">
+    <div><div class="ca" data-ca></div><p class="foot-links" data-token-links></p></div>
+    <div><h2>Watch</h2><ul><li><a href="/">The current test</a></li><li><a href="/live">Live runs</a></li><li><a href="/integrity">Integrity Index</a></li><li><a href="/cases">Case files</a></li></ul></div><div><h2>Take part</h2><ul><li><a href="/plant">Plant bait</a></li><li><a href="/sureties">Stand surety</a></li><li><a href="/forecasts">Free forecasts</a></li></ul></div><div><h2>Check</h2><ul><li><a href="/docs/trust">Trust points</a></li><li><a href="/docs/methodology">Methodology</a></li><li><a href="/log">Transparency log</a></li><li><a href="/status">Status</a></li></ul></div><div><h2>Record</h2><ul><li><a href="/docs">The paper</a></li><li><a href="/developers">Developers</a></li><li><a href="/changelog">Changelog</a></li><li><a href="/reports">Test reports</a></li><li><a href="/docs/right-of-reply">Right of reply</a></li></ul></div>
+  </div>
+  <dl class="foot-facts">
+    <div><dt>Program</dt><dd class="mono">CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr</dd></div>
+  </dl>
+  <p class="foot-note">Rates are from our tests, per exact model version, with 95% intervals and every run published. Agents act only inside a closed program ledger against addresses we own; real SOL moves only at settlement, by rule. Forecasts are free.</p>
+</footer>
+</body>
+</html>

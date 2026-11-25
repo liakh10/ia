@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trust points · Internal Affairs</title>
+<meta name="description" content="Every party you trust, what it could do if it misbehaved, and what bounds it. Read this before anything else.">
+<link rel="canonical" href="https://ia-sol.vercel.app/docs/trust">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Internal Affairs">
+<meta property="og:title" content="Trust points · Internal Affairs">
+<meta property="og:description" content="Every party you trust, what it could do if it misbehaved, and what bounds it. Read this before anything else.">
+<meta property="og:url" content="https://ia-sol.vercel.app/docs/trust">
+<meta name="twitter:card" content="summary">
+
+<script src="/config.js"></script>
+<script type="module" src="/ui/app.js"></script>
+<script type="module" src="/ui/docs.js"></script>
+</head>
+<body class="page-docs" data-page="docs">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/" aria-label="Internal Affairs, home"><span class="brand-mark" aria-hidden="true">IA</span><span class="brand-name">Internal Affairs</span></a>
+  <nav class="nav" id="nav" aria-label="Main"><a href="/">Test</a><a href="/integrity">Integrity Index</a><a href="/cases">Case files</a><a href="/plant">Plant</a><a href="/sureties">Sureties</a><a href="/forecasts">Forecasts</a><a href="/docs" aria-current="page">Docs</a></nav>
+  <div class="top-end"><button class="btn small ghost" type="button" data-wallet hidden>Connect</button><button class="menu" type="button" aria-expanded="false" aria-controls="nav"><span class="menu-bars"></span><span class="sr">Menu</span></button></div>
+</header>
+<main id="main">
+<div class="docs">
+  <aside class="docs-side" aria-label="Sections">
+    <details class="docs-pick" open><summary>The paper</summary><ol class="docs-list"><li><a href="/docs"><span class="n">01</span>Abstract</a></li><li><a href="/docs/trust" aria-current="page"><span class="n">02</span>Trust points</a></li><li><a href="/docs/methodology"><span class="n">03</span>Methodology</a></li><li><a href="/docs/tiers"><span class="n">04</span>Tiers</a></li><li><a href="/docs/plants"><span class="n">05</span>Plants</a></li><li><a href="/docs/purses-and-sureties"><span class="n">06</span>Purses and sureties</a></li><li><a href="/docs/integrity-index"><span class="n">07</span>Integrity Index</a></li><li><a href="/docs/verification"><span class="n">08</span>Verification</a></li><li><a href="/docs/forecasts"><span class="n">09</span>Forecasts</a></li><li><a href="/docs/threat-model"><span class="n">10</span>Threat model</a></li><li><a href="/docs/legal"><span class="n">11</span>Legal and ethics</a></li><li><a href="/docs/right-of-reply"><span class="n">12</span>Right of reply</a></li><li><a href="/docs/parameters"><span class="n">13</span>Parameters and fees</a></li><li><a href="/docs/phases"><span class="n">14</span>Phases</a></li><li><a href="/docs/glossary"><span class="n">15</span>Glossary</a></li></ol></details>
+  </aside>
+  <article class="prose" data-docs>
+    <p class="kicker">Every party you trust, what it could do if it misbehaved, and what bounds it. Read this before anything else.</p>
+    <h1 id="trust-points">Trust points</h1>
+<p>A trust point is a place where the system relies on a party behaving, because the chain alone cannot check it. Each one below says
+what the party could do, what it cannot do, and what bounds the damage.</p>
+<h2 id="1-the-runner-relays-model-outputs-faithfully">1. The runner relays model outputs faithfully<a class="anchor" href="#1-the-runner-relays-model-outputs-faithfully" aria-label="Link to this section">#</a></h2>
+<p>The runner calls each model's API and turns the model's tool calls into <code>act</code> transactions signed by the run's session key. Nobody can
+prove that a closed API's answer was not forged in between. A dishonest runner could make a clean model look bent, or a bent model look
+clean.</p>
+<p>What bounds it:</p>
+<ul><li>Every request and response goes into the run's transcript with the provider's request id, and the transcript is published after the
+test settles.</li><li>Each act carries <code>step = sha256(the transcript line that produced it)</code>, and the program chains the acts into a <code>trail</code>, so the
+transcript and the chain must agree line for line.</li><li>The transcript's Merkle root is written on chain before settlement, so the runner cannot rewrite a transcript after seeing the outcome.</li><li>The harness (prompts, tools, exact model versions, runs per docket, the goal nudge) is committed on chain before the plant window
+closes.</li><li>The open-weights model in the lineup runs with batch-invariant inference, so anyone can replay its runs bit for bit and catch a forged
+answer.</li><li>Closed models are judged on rates over many runs, never on a single outcome.</li><li>The catch cap: whatever the runner does, one test can move at most 25% of a purse, publicly.</li><li>The runner key cannot plant or deposit (checked on chain for its own key; a sybil key is the stated residual risk).</li></ul>
+<p>A later phase runs the harness in an attested enclave, which removes most of this trust point. See <a href="/docs/phases">Phases</a>.</p>
+<h2 id="2-the-registry-keeps-plants-sealed-until-the-runs">2. The registry keeps plants sealed until the runs<a class="anchor" href="#2-the-registry-keeps-plants-sealed-until-the-runs" aria-label="Link to this section">#</a></h2>
+<p>Plant texts go to the registry over TLS and stay sealed until the test settles. A registry that leaked them would let other
+investigators copy a plant before the runs. It cannot alter a plant: the text's sha256 is on chain from the moment it is paid for, and
+the reveal after settlement lets anyone re-hash it. A plant the registry never delivered is never shown to any model and cannot be
+caught.</p>
+<h2 id="3-the-admin">3. The admin<a class="anchor" href="#3-the-admin" aria-label="Link to this section">#</a></h2>
+<p>The admin key can pause new tests, change parameters inside the program's hard caps (most changes apply from the next test), schedule a
+lineup change or a runner rotation that takes effect only after a delay of about a day, withdraw the treasury's 5% share to the dev
+wallet, and close the program, which pays every surety and every unclaimed bounty out by rule.</p>
+<p>It cannot move a purse, a plant's bounty or the runner fund except by those rules. No instruction moves purse lamports except
+settlement (to plants), surety withdrawals (to the surety that owns the shares) and closing (to the same owners).</p>
+<h2 id="4-model-providers-change-models">4. Model providers change models<a class="anchor" href="#4-model-providers-change-models" aria-label="Link to this section">#</a></h2>
+<p>Each agent account records an exact version string. A new version opens a new epoch with a fresh record, and the index reports per
+version. A provider can still change a model behind a fixed name; rates over time per version make that visible but cannot prevent it.</p>
+<h2 id="5-the-read-api-and-this-site">5. The read API and this site<a class="anchor" href="#5-the-read-api-and-this-site" aria-label="Link to this section">#</a></h2>
+<p>Every number on this site comes from the read API, which rebuilds everything from the program's events and replays every act and tier
+from the published rules (any mismatch is listed on <a href="/status">Status</a>). The API holds no keys and moves no funds. A wrong number there
+is checkable against the chain with the SDK; a case file checks its own transcript in your browser.</p>
+<h2 id="6-the-log">6. The log<a class="anchor" href="#6-the-log" aria-label="Link to this section">#</a></h2>
+<p>The transparency log signs its tree heads with its own key and anchors transcript roots on chain. A log that dropped or rewrote an entry
+would fail an inclusion or consistency proof against a head it signed earlier, and the on-chain roots would disagree with it.</p>
+    <nav class="docs-next" aria-label="Pages"><a class="prev" href="/docs"><span>Previous</span>Abstract</a><a class="next" href="/docs/methodology"><span>Next</span>Methodology</a></nav>
+  </article>
+  <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ol><li class="d2"><a href="#1-the-runner-relays-model-outputs-faithfully">1. The runner relays model outputs faithfully</a></li><li class="d2"><a href="#2-the-registry-keeps-plants-sealed-until-the-runs">2. The registry keeps plants sealed until the runs</a></li><li class="d2"><a href="#3-the-admin">3. The admin</a></li><li class="d2"><a href="#4-model-providers-change-models">4. Model providers change models</a></li><li class="d2"><a href="#5-the-read-api-and-this-site">5. The read API and this site</a></li><li class="d2"><a href="#6-the-log">6. The log</a></li></ol></aside>
+</div>
+</main>
+<footer class="foot">
+  <div class="foot-grid">
+    <div><div class="ca" data-ca></div><p class="foot-links" data-token-links></p></div>
+    <div><h2>Watch</h2><ul><li><a href="/">The current test</a></li><li><a href="/live">Live runs</a></li><li><a href="/integrity">Integrity Index</a></li><li><a href="/cases">Case files</a></li></ul></div><div><h2>Take part</h2><ul><li><a href="/plant">Plant bait</a></li><li><a href="/sureties">Stand surety</a></li><li><a href="/forecasts">Free forecasts</a></li></ul></div><div><h2>Check</h2><ul><li><a href="/docs/trust">Trust points</a></li><li><a href="/docs/methodology">Methodology</a></li><li><a href="/log">Transparency log</a></li><li><a href="/status">Status</a></li></ul></div><div><h2>Record</h2><ul><li><a href="/docs">The paper</a></li><li><a href="/developers">Developers</a></li><li><a href="/changelog">Changelog</a></li><li><a href="/reports">Test reports</a></li><li><a href="/docs/right-of-reply">Right of reply</a></li></ul></div>
+  </div>
+  <dl class="foot-facts">
+    <div><dt>Program</dt><dd class="mono">CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr</dd></div>
+  </dl>
+  <p class="foot-note">Rates are from our tests, per exact model version, with 95% intervals and every run published. Agents act only inside a closed program ledger against addresses we own; real SOL moves only at settlement, by rule. Forecasts are free.</p>
+</footer>
+</body>
+</html>

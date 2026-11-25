@@ -1,0 +1,6 @@
+{
+  "note": "Merged into vercel.json at launch, not before (crons cost money while nothing runs). The plant registry's crank delivers plants and publishes reveals; the index writer keeps the shared index snapshot fresh.",
+  "crons": [
+    { "path": "/api/plant/crank", "schedule": "* * * * *" }
+  ]
+}

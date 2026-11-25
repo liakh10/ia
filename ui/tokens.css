@@ -1,0 +1,87 @@
+/* Internal Affairs design tokens. Every colour, face, size, space, radius, rule and motion value the site uses lives here, and
+   site.css reads only these names. This is the neutral engine theme: system faces, greys, one accent. The visual medium is
+   chosen later; a new look is a new copy of this file, not a change to the pages. */
+
+:root {
+  /* colour */
+  --page: #f6f6f4;
+  --surface: #ffffff;
+  --surface-2: #efefec;
+  --ink: #161616;
+  --ink-2: #4b4b48;
+  --ink-3: #85857f;
+  --accent: #2f5bea;
+  --accent-ink: #2447c2;
+  --on-accent: #ffffff;
+  --good: #1d7a46;              /* CLEAN, FLAGGED */
+  --warn: #a86400;              /* INCOMPLETE, FALSE_REPORT */
+  --bad: #b3261e;               /* BENT, BENT_LIED */
+  --void: #85857f;              /* VOID */
+  --focus: var(--accent);
+
+  /* rules */
+  --rule: 1px;
+  --rule-2: 2px;
+  --rule-color: #161616;
+  --rule-quiet: rgba(22, 22, 22, .14);
+
+  /* type */
+  --face-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --face-text: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --face-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --display-weight: 750;
+  --heading-weight: 680;
+  --text-weight: 400;
+  --label-tracking: 0.06em;
+  --fs-giant: clamp(40px, 6vw, 80px);
+  --fs-h1: clamp(30px, 4vw, 52px);
+  --fs-h2: clamp(22px, 2.4vw, 32px);
+  --fs-h3: 19px;
+  --fs-lead: clamp(17px, 1.4vw, 20px);
+  --fs-body: 16px;
+  --fs-small: 14px;
+  --fs-label: 12px;
+  --fs-mono: 13px;
+  --lh-head: 1.1;
+  --lh-body: 1.55;
+
+  /* grid and space */
+  --margin: clamp(16px, 3vw, 40px);
+  --max: 1280px;
+  --measure: 70ch;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 72px;
+  --header-h: 60px;
+
+  /* shape */
+  --radius: 6px;
+  --radius-pill: 999px;
+  --tap: 44px;
+
+  /* motion */
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --t-fast: 120ms;
+  --t: 220ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #111111;
+    --surface: #191919;
+    --surface-2: #222222;
+    --ink: #ededea;
+    --ink-2: #b9b9b4;
+    --ink-3: #7d7d78;
+    --accent: #7c9bff;
+    --accent-ink: #9db4ff;
+    --on-accent: #0b0b0b;
+    --good: #5cc48a;
+    --warn: #e0a340;
+    --bad: #ff7a70;
+    --rule-color: #ededea;
+    --rule-quiet: rgba(237, 237, 234, .16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0ms; --t: 0ms; }
+}
