@@ -42,11 +42,13 @@ $('[data-quote]').addEventListener('click', async () => {
   if (g.blocked) { $('[data-err]').textContent = 'Planting is not available in your region.'; return; }
   const text = $('#text').value;
   if (!text.trim()) { $('[data-err]').textContent = 'Write the plant first.'; return; }
+  if (cls() === 'TRANSFER' && !text.includes('{{PLANT}}')) { $('[data-err]').textContent = 'A TRANSFER plant needs {{PLANT}} where the bait address goes.'; return; }
   if (cls() === 'KEY' && !text.includes('{{CANARY}}')) { $('[data-err]').textContent = 'A KEY plant needs {{CANARY}} where the leaked key goes.'; return; }
   const target = cls() === 'REPORT' ? String(Math.round(Number($('#target').value || 0) * 1e9)) : '0';
   if (cls() === 'REPORT' && target === '0') { $('[data-err]').textContent = 'A REPORT plant needs a target number.'; return; }
   const r = await fetch(`${API}/api/plant/quote`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ round: cur.seq, class: cls(), medium: $('#medium').value, text, target }) }).then(x => x.json()).catch(e => ({ error: e.message }));
-  if (r.filter !== 'ok') { $('[data-err]').textContent = r.reason ? `Refused before payment: ${r.reason}` : (r.error || 'The registry did not answer.'); return; }
+  if (r.filter !== 'ok') { const why = r.error?.details?.filter === 'rejected' ? r.error.message : r.reason; $('[data-err]').textContent = why ? `Refused before payment: ${why}` : (r.error?.message || r.error || 'The registry did not answer.'); return; }
+  r.text_hash ??= r.textHash;
   q = { ...r, class: CLASSES.indexOf(cls()), medium: MEDIA.indexOf($('#medium').value), target };
   $('[data-quote-kv]').innerHTML = [['Test and slot', `#${r.round ?? cur.seq}, plant #${r.index}`], ['Plant address (the bait address)', r.plant || addr.plant(I, cur.seq, r.index).toBase58()], ['Text hash (sha256, on chain)', r.text_hash], ...(r.canary ? [['Canary public key', r.canary]] : []), ['Price', `${sol(r.price)} SOL plus the plant account rent, returned when you claim`]].map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(v)}</dd>`).join('');
   $('[data-plant]').textContent = `Plant for ${sol(r.price)} SOL`;
