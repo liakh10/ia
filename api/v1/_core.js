@@ -172,7 +172,7 @@ export async function handleV1(req) {
         const holderAcc = holder && cfg && cfg.rootMint !== sdk.DEFAULT_KEY ? { mint: cfg.rootMint, tokenProgram: cfg.rootTokenProgram } : null;
         const ix = await sdk.plantInstruction({
           round: qt.round, index: qt.index, planter: q.planter, class: cls, medium: med, textHash: q.text_hash.toLowerCase(), target,
-          canary: cls === sdk.CLASS_KEY ? q.canary : null, holder: holderAcc, programId,
+          canary: cls === sdk.CLASS_KEY ? q.canary : null, holder: holderAcc, programId, maxPrice: qt.price,
         });
         const { blockhash } = await c.rpc.getLatestBlockhash();
         const tx = sdk.unsignedTransaction({ feePayer: q.planter, recentBlockhash: blockhash, instructions: [ix] });

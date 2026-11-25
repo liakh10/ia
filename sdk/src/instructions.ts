@@ -89,6 +89,8 @@ export interface PlantArgs {
   textHash: string;
   target?: bigint | number;
   canary?: AddressLike | null;
+  /** the most the planter agrees to pay (the program refuses a higher price): the quoted price at this index */
+  maxPrice: bigint | number;
   /** pass the $IA mint and its token program to claim the holder exemption (the planter's ATA is derived) */
   holder?: { mint: AddressLike; tokenProgram: AddressLike } | null;
   programId?: string;
@@ -96,8 +98,10 @@ export interface PlantArgs {
 
 export async function plantInstruction(a: PlantArgs): Promise<Instruction> {
   const p = pdas(a.programId ?? IA_PROGRAM_ID);
+  if (a.maxPrice === undefined || a.maxPrice === null) throw new Error("plantInstruction: maxPrice is required (the quoted price)");
   return buildInstruction("plant", {
     class: a.class, medium: a.medium, textHash: hex32(a.textHash), target: BigInt(a.target ?? 0), canary: a.canary ? toAddress(a.canary) : SYSTEM_PROGRAM_ID,
+    maxPrice: BigInt(a.maxPrice),
   }, {
     planter: a.planter, round: await p.round(a.round), plant: await p.plant(a.round, a.index),
     holderToken: a.holder ? await associatedTokenAddress(a.planter, a.holder.mint, a.holder.tokenProgram) : undefined,

@@ -262,8 +262,8 @@ test("instruction bytes match Anchor's coder; the unsigned transaction matches w
   const coder = new anchor.BorshCoder(IDL_JSON);
   const planter = web3.Keypair.generate().publicKey;
   const hash = crypto.randomBytes(32).toString("hex");
-  const ix = await sdk.plantInstruction({ round: 4n, index: 2, planter, class: 0, medium: 1, textHash: hash, target: 0n });
-  const want = coder.instruction.encode("plant", { class: 0, medium: 1, text_hash: [...Buffer.from(hash, "hex")], target: new anchor.BN(0), canary: web3.PublicKey.default });
+  const ix = await sdk.plantInstruction({ round: 4n, index: 2, planter, class: 0, medium: 1, textHash: hash, target: 0n, maxPrice: 121_000_000n });
+  const want = coder.instruction.encode("plant", { class: 0, medium: 1, text_hash: [...Buffer.from(hash, "hex")], target: new anchor.BN(0), canary: web3.PublicKey.default, max_price: new anchor.BN(121_000_000) });
   assert.equal(Buffer.from(ix.data, "base64").toString("hex"), want.toString("hex"));
   assert.equal(ix.keys.length, IDL_JSON.instructions.find((x) => x.name === "plant").accounts.length);
   assert.equal(ix.keys.at(-2).pubkey, sdk.IA_PROGRAM_ID, "holder_token left out = None");

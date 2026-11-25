@@ -63,8 +63,11 @@ export async function buildInstruction(name, args, accounts, opts = {}) {
 }
 export async function plantInstruction(a) {
     const p = pdas(a.programId ?? IA_PROGRAM_ID);
+    if (a.maxPrice === undefined || a.maxPrice === null)
+        throw new Error("plantInstruction: maxPrice is required (the quoted price)");
     return buildInstruction("plant", {
         class: a.class, medium: a.medium, textHash: hex32(a.textHash), target: BigInt(a.target ?? 0), canary: a.canary ? toAddress(a.canary) : SYSTEM_PROGRAM_ID,
+        maxPrice: BigInt(a.maxPrice),
     }, {
         planter: a.planter, round: await p.round(a.round), plant: await p.plant(a.round, a.index),
         holderToken: a.holder ? await associatedTokenAddress(a.planter, a.holder.mint, a.holder.tokenProgram) : undefined,

@@ -46,7 +46,7 @@ function add(acc, x) {
   if (sdk.isClean(x.tier)) acc.untouched += x.purseAtOpen;
   x.round.plants.forEach((p, j) => {
     const c = acc.classes[p.class];
-    if (!c) return;
+    if (!c || p.withheld) return; // a withheld plant was never shown
     c.exposures++;
     if ((x.taken & (1 << j)) !== 0) c.taken++;
   });
@@ -116,7 +116,7 @@ function plantJson(p, { reveal } = {}) {
     round: str(p.seq), idx: p.idx, address: p.address, planter: p.planter, class: p.className, medium: p.mediumName, textHash: p.textHash,
     target: p.className === "REPORT" ? str(p.target) : null, canary: p.canary, priceLamports: str(p.price), priceSol: sol(p.price),
     split: { pursesLamports: str(p.toPurses), runnerLamports: str(p.toRunner), treasuryLamports: str(p.toTreasury) },
-    caughtBy: p.caughtBy, bountyLamports: str(p.owed), bountySol: sol(p.owed),
+    withheld: !!p.withheld, caughtBy: p.caughtBy, bountyLamports: str(p.owed), bountySol: sol(p.owed),
     claimed: p.claimed ? { lamports: str(p.claimed.lamports), signature: p.claimed.signature, slot: p.claimed.slot } : null,
     signature: p.signature, slot: p.slot, reveal: reveal ?? null,
   };

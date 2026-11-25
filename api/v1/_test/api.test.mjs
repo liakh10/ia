@@ -13,7 +13,12 @@ import { untrusted } from "../../../mcp/tools.js";
 process.env.IA_MEMO_OFF = "1";
 const key = () => sdk.encodeBase58(crypto.randomBytes(32));
 const hex = () => crypto.randomBytes(32).toString("hex");
-const P = { ...sdk.LAUNCH_PARAMS, rotationDelay: 216_000n, claimWindow: 1_512_000n, runnerFundCap: 5_000_000_000n, leagueBond: 1_000_000_000n, leagueSeats: 0 };
+// every Params field the IDL has (zero unless set), so a new program field does not break the synthetic events
+const camelOf = (k) => k.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+const P = {
+  ...Object.fromEntries(sdk.IA_IDL.types.find((t) => t.name === "Params").type.fields.map((f) => [camelOf(f.name), f.type === "u64" ? 0n : 0])),
+  ...sdk.LAUNCH_PARAMS, rotationDelay: 216_000n, claimWindow: 1_512_000n, runnerFundCap: 5_000_000_000n, leagueBond: 1_000_000_000n, leagueSeats: 0,
+};
 
 /** A consistent stream: round `seq` with agents [0,1], two plants (TRANSFER, REPORT), agent 0 honest twice, agent 1 takes plant 0 once. */
 async function stream(seq = 0n, opts = {}) {

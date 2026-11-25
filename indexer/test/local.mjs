@@ -25,6 +25,12 @@ fs.rmSync(work, { recursive: true, force: true });
 fs.mkdirSync(work, { recursive: true });
 const RPC = "http://127.0.0.1:58899";
 const idl = JSON.parse(fs.readFileSync(path.join(chainDir, "ia.json"), "utf8"));
+// the SDK must decode exactly what this build writes: its IDL must equal the snapshot's (docs aside)
+const strip = (v) => Array.isArray(v) ? v.map(strip) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).filter(([k]) => k !== "docs").map(([k, x]) => [k, strip(x)])) : v;
+if (JSON.stringify(strip(idl)) !== JSON.stringify(sdk.IA_IDL)) {
+  console.log("the SDK's IDL differs from this build's: run `cd sdk && npm run sync-idl && npm run build` first");
+  process.exit(1);
+}
 const conn = new Connection(RPC, "confirmed");
 const keyOf = (f) => Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(f, "utf8"))));
 const admin = keyOf(path.join(chainDir, "authority.json"));
@@ -65,18 +71,18 @@ const inv1 = Keypair.generate(), inv2 = Keypair.generate(), inv3 = Keypair.gener
 await fund([admin], 100);
 await fund([outsider, runner, suretyA, suretyB, suretyC, inv1, inv2, inv3], 20);
 const MODELS = ["anthropic/claude-opus-5.5", "openai/gpt-6.2-astra-2026-11-17", "google/gemini-4-neon"];
-const PARAMS = {
-  plantWindow: new BN(30), runWindow: new BN(90), minPlant: new BN(100_000_000), priceBps: 25, stepBps: 1000, maxPlants: 8,
-  purseBps: 8300, runnerBps: 1200, treasuryBps: 500, bountyBps: 500, docketCapBps: 2500, maxRuns: 3, minDeposit: new BN(100_000_000),
-  unbondDelay: new BN(150), runnerDrawCap: new BN(200_000_000), holderMin: new BN(1_000_000).mul(new BN(1_000_000)), nudgeEvery: 2,
-  rotationDelay: new BN(160), claimWindow: new BN(20), runnerFundCap: new BN(200_000_000), leagueBond: new BN(100_000_000), leagueSeats: 0,
+const PARAMS_OVERRIDE = {
+  plantWindow: new BN(30), runWindow: new BN(90), unbondDelay: new BN(150), rotationDelay: new BN(160), claimWindow: new BN(20),
+  runnerFundCap: new BN(200_000_000), leagueBond: new BN(100_000_000), exitGap: new BN(20),
 };
 const CONFIG = await P.config(), FUND = await P.runnerFund(), TREASURY = await P.treasury();
 
 /* ------------------------------------------------------------------ the chain side */
 await check("setup: init_config, params, three lineup agents; sureties deposit through SDK-built unsigned transactions", async () => {
   await program.methods.initConfig(runner.publicKey, dev.publicKey).accountsPartial({ admin: admin.publicKey, config: CONFIG, treasury: TREASURY, runnerFund: FUND, programData: await P.programData() }).rpc();
-  await program.methods.setParams(PARAMS).accountsPartial({ admin: admin.publicKey, config: CONFIG }).rpc();
+  // the launch params with the windows shortened for the quick build (fields this test does not know keep the program's values)
+  const cur = (await program.account.config.fetch(CONFIG)).params;
+  await program.methods.setParams({ ...cur, ...PARAMS_OVERRIDE }).accountsPartial({ admin: admin.publicKey, config: CONFIG }).rpc();
   for (let i = 0; i < 3; i++) await program.methods.addAgent(MODELS[i]).accountsPartial({ admin: admin.publicKey, config: CONFIG, agent: await P.agent(i) }).rpc();
   for (const [kp, id, l] of [[suretyA, 0, SOL], [suretyB, 1, 200_000_000], [suretyC, 2, 500_000_000]]) {
     await sendSdk([await sdk.depositInstruction({ agent: id, owner: kp.publicKey, lamports: BigInt(l) })], kp, [kp]);
@@ -125,7 +131,7 @@ await check("open_round and three plants through the SDK builders; prices follow
     eq(q.index, j);
     prices.push(q.price);
     const hash = crypto.createHash("sha256").update(texts[j]).digest("hex");
-    await sendSdk([await sdk.plantInstruction({ round: 0n, index: j, planter: kp.publicKey, class: cls, medium: j, textHash: hash, target, canary: can })], kp, [kp]);
+    await sendSdk([await sdk.plantInstruction({ round: 0n, index: j, planter: kp.publicKey, class: cls, medium: j, textHash: hash, target, canary: can, maxPrice: q.price })], kp, [kp]);
   }
   eq(prices.map(String).join(), "100000000,110000000,121000000");
   const p1 = await client.getPlant(0n, 1);
@@ -166,7 +172,8 @@ async function act(id, r, action, said, extra = []) {
   const line = entryLine(id, r, { kind: "tool_call", provider: "test", model: MODELS[id], request_id: `req_${crypto.randomUUID()}`, body: { name: action.kind.toLowerCase(), input: JSON.parse(JSON.stringify(action, (_, v) => (typeof v === "bigint" ? v.toString() : v))) } });
   const step = await sdk.stepHash(line);
   const ix = await sdk.actInstruction({ seq: 0n, agent: id, run: r, session: sessions[`${id}.${r}`].publicKey, step, action, signers: extra.map((k) => k.publicKey) });
-  return sendSdk([ix], sessions[`${id}.${r}`], [sessions[`${id}.${r}`], ...extra]);
+  // the runner pays the fees; the session key (and a canary the agent chose to use) only sign
+  return sendSdk([ix], runner, [runner, sessions[`${id}.${r}`], ...extra]);
 }
 const pay = (source, to, amount) => ({ kind: "Pay", source, to: typeof to === "string" ? to : to.toBase58(), amount: BigInt(amount) });
 const report = (operating, reserve, payments, total) => ({ kind: "Report", operating: BigInt(operating), reserve: BigInt(reserve), payments, total: BigInt(total) });

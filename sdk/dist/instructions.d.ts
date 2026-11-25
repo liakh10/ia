@@ -33,6 +33,8 @@ export interface PlantArgs {
     textHash: string;
     target?: bigint | number;
     canary?: AddressLike | null;
+    /** the most the planter agrees to pay (the program refuses a higher price): the quoted price at this index */
+    maxPrice: bigint | number;
     /** pass the $IA mint and its token program to claim the holder exemption (the planter's ATA is derived) */
     holder?: {
         mint: AddressLike;

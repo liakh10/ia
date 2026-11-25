@@ -60,7 +60,7 @@ export class IaIndex {
           lineup: d.lineup, lineupAssets: BigInt(d.lineupAssets),
           lineupModels: d.lineup.map((id) => { const a = this.agents.get(id); return { id, model: a?.model ?? null, epoch: a?.epoch ?? null }; }),
           task, template: off.template, decoys: off.decoys.map((x) => x.address),
-          plants: [], harness: null, dockets: new Map(), state: "planting", settledSlot: null, opened: at, empty: false,
+          plants: [], withheld: 0, harness: null, dockets: new Map(), state: "planting", settledSlot: null, opened: at, empty: false,
           // the program snapshots Params into the round (BOARD 11-25); until then the Config's at open
           params: d.params ?? this.config?.params ?? null,
         });
@@ -84,6 +84,15 @@ export class IaIndex {
           canary: d.canary === sdk.DEFAULT_KEY ? null : d.canary, price: BigInt(d.price), toPurses: BigInt(d.toPurses), toRunner: BigInt(d.toRunner),
           toTreasury: BigInt(d.toTreasury), address: await this.p.plant(r.seq, d.idx), owed: 0n, claimed: null, caughtBy: [], ...at,
         });
+        break;
+      }
+      case "PlantsWithheld": {
+        // plants the registry never delivered: never shown, cannot be taken (masked out at settlement)
+        const r = this.round(d.round);
+        if (r) {
+          r.withheld = d.mask;
+          r.plants.forEach((p, j) => { p.withheld = (d.mask & (1 << j)) !== 0; });
+        }
         break;
       }
       case "HarnessCommitted": {
@@ -147,8 +156,14 @@ export class IaIndex {
           purseShare: BigInt(d.purseShare), assetsAfter: BigInt(d.assetsAfter), transcriptRoot: d.transcriptRoot, forfeited: !!d.forfeited, ...at,
         };
         const started = [];
+        const withheld = r.withheld ?? 0;
         k.runs.forEach((x, i) => {
           x.tier = d.tiers[i];
+          // settlement masks out withheld plants before the tier, as the program does
+          if (x.ledger) {
+            x.ledger.run.taken &= ~withheld;
+            x.ledger.run.reportTaken &= ~withheld;
+          }
           const replayed = x.ledger ? x.ledger.tier() : sdk.TIER_VOID;
           x.tierReplayed = replayed;
           if (replayed !== d.tiers[i]) this.miss(e, `run ${d.round}/${d.agent}/${i}: tier ${TIER[d.tiers[i]]} on chain, ${TIER[replayed]} replayed`);
