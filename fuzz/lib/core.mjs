@@ -113,7 +113,14 @@ export function harness(url = RPC) {
       }
     }
   }
-  async function getTx(sig) { for (let i = 0; i < 40; i++) { const t = await conn.getTransaction(sig, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }); if (t) return t; await sleep(150); } return null; }
+  /** a transaction's slot and meta by raw JSON-RPC (base64, maxSupportedTransactionVersion 1: web3.js 1.98 cannot decode v1 messages,
+   *  and only the slot and the logs are read here) */
+  async function rawTx(sig) {
+    const body = { jsonrpc: '2.0', id: 1, method: 'getTransaction', params: [sig, { commitment: 'confirmed', encoding: 'base64', maxSupportedTransactionVersion: 1 }] };
+    const r = await globalThis.fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(x => x.json());
+    return r.result || null;
+  }
+  async function getTx(sig) { for (let i = 0; i < 40; i++) { const t = await rawTx(sig); if (t) return t; await sleep(150); } return null; }
   async function sim(ixs, signers, o = {}) {
     const tx = await build(ixs, signers, o.payer);
     const r = await conn.simulateTransaction(tx, undefined, false);
@@ -126,5 +133,5 @@ export function harness(url = RPC) {
   async function fund(kps, sol) { await Promise.all(kps.map(async k => { const sig = await conn.requestAirdrop(k.publicKey, Math.round(sol * 1e9)); await conn.confirmTransaction(sig, 'confirmed'); })); }
   const F = program.account;
   const fetch = async (kind, addr) => { try { return await F[kind].fetch(addr, 'confirmed'); } catch { return null; } };
-  return { idl, conn, admin, program, PID, K, send, sim, lam, slot, waitSlot, fund, F, fetch, reason };
+  return { idl, conn, admin, program, PID, K, send, sim, lam, slot, waitSlot, fund, F, fetch, reason, getTx };
 }

@@ -32,7 +32,7 @@ function expect(name, r, want) {
   if (!pass) bad(`${name}: want ${want}, got ${got}`);
   return r;
 }
-const txSlot = async sig => { for (let i = 0; i < 40; i++) { const t = await h.conn.getTransaction(sig, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }); if (t) return BigInt(t.slot); await new Promise(r => setTimeout(r, 150)); } return null; };
+const txSlot = async sig => { const t = await h.getTx(sig); return t ? BigInt(t.slot) : null; }; // raw JSON-RPC, v1-safe (core.mjs)
 
 /* ------------------------------------------------------------------ params: a small fund cap so spill happens, league seats open */
 const PARAMS = { rotationDelay: new BN(60), runnerDrawCap: new BN(10_000_000), runnerFundCap: new BN(10_000_000), leagueSeats: 2, leagueBond: new BN(100_000_000), claimWindow: new BN(20) };
