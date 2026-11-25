@@ -1,0 +1,25 @@
+{
+  "name": "@ia/sdk",
+  "version": "0.1.0",
+  "description": "Internal Affairs SDK: read the ia program straight from Solana (purses, rounds, plants, dockets), the rules byte for byte with rules.rs, replay a run's ledger, decode events, build instructions and unsigned transactions, check transcript roots and log proofs. Zero runtime dependencies.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md"],
+  "sideEffects": false,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/",
+    "sync-idl": "node scripts/sync-idl.mjs"
+  },
+  "devDependencies": {
+    "@solana/web3.js": "1.98.4",
+    "typescript": "5.9.3"
+  }
+}
