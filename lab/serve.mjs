@@ -5,7 +5,8 @@
 //   POST /lab/api/<action>            setup, deposit, unbond, withdraw, open, quote, plant, commit, dockets, run, settle,
 //                                     close-empty, claim, auto, backfill; GET /lab/api/state
 //   GET  /lab/api/stream              SSE: program events, transcript entries and the lab's log lines as they happen
-//   GET  /api/runner/stream?seq=      SSE in the runner's shape (BUILD interface 3): {seq, agent, run, entry}
+//   GET  /api/runner/stream?seq=      SSE in the runner's shape (BUILD interface 3): {seq, agent, run, entry}; the real runner's own
+//                                     stream while POST /lab/api/runner-commit|runner-run has it working on the lab chain
 //   /api/plant/*, /api/log/*          the real plant registry and log (verifier bundle) with lab keys; IA_LAB_REGISTRY=stub plays them
 //   ANY  /v1/*                        the read API (CONTRACT §9): devx's router (api/v1) on the lab chain, or a proxy to IA_API
 //   POST /api/rpc                     JSON-RPC to the lab chain, so pages read the chain from the same origin
@@ -48,7 +49,28 @@ let ready = false;
 let queue = Promise.resolve();
 const serial = fn => { const p = queue.then(fn, fn); queue = p.catch(() => {}); return p; };
 
+/* the real runner (ia/runner/cli.mjs) on the lab chain: its own commit (the real harness) and its own runs with the models through
+   the adapters and their budget guard. Model calls spend the owner's API credits, so this runs only when a button asks for it. */
+import { spawn } from 'node:child_process';
+const RUNNER_STREAM_PORT = Number(process.env.IA_LAB_RUNNER_STREAM || port + 1);
+let runnerBusy = false;
+function runnerCli(cmd, seq) {
+  if (runnerBusy) throw Error('the runner is already working');
+  runnerBusy = true;
+  const env = { ...process.env, IA_RPC: lab.rpc, IA_RUNNER_KEY: path.join(STATE, 'keys', 'runner.json'), IA_DATA: STATE, IA_STREAM_PORT: String(RUNNER_STREAM_PORT), ...(lab.registry ? { IA_SERVICES_URL: lab.registry } : {}) };
+  delete env.IA_LOG_KEY; delete env.IA_SEAL_KEY;
+  return new Promise((ok, no) => {
+    const ch = spawn(process.execPath, [path.join(root, 'runner/cli.mjs'), cmd, String(seq)], { env, cwd: root });
+    const tail = [];
+    const line = b => String(b).split('\n').filter(Boolean).forEach(l => { lines.push('runner: ' + l); broadcast('log', { line: 'runner: ' + l }); tail.push(l); if (tail.length > 20) tail.shift(); });
+    ch.stdout.on('data', line); ch.stderr.on('data', line);
+    ch.on('close', code => { runnerBusy = false; code === 0 ? ok({ cmd, seq, code }) : no(Error(`runner ${cmd} exited ${code}: ${tail.slice(-3).join(' | ')}`)); });
+  });
+}
+
 const ACTIONS = {
+  'runner-commit': async () => { const c = await lab.current(); return runnerCli('commit', c.seq); },
+  'runner-run': async () => { const c = await lab.current(); const r = await runnerCli('run', c.seq); await lab.backfill(); return r; },
   setup: b => lab.setup(b),
   deposit: b => lab.deposit(b), unbond: b => lab.unbond(b), withdraw: b => lab.withdraw(b),
   open: () => lab.open(), quote: b => lab.quote(b), plant: b => lab.plant(b), commit: () => lab.commit(), dockets: () => lab.dockets(),
@@ -163,6 +185,11 @@ const server = http.createServer(async (req, res) => {
     if (p === '/lab/wallet/sign' && req.method === 'POST') {
       const b = await body(req);
       return json(res, 200, { signature: Buffer.from(lab.signWithWallet(Buffer.from(b.message, 'base64'))).toString('base64') });
+    }
+    if (p === '/api/runner/stream' && runnerBusy) {
+      // the real runner is working: its own stream (entries redacted until settlement)
+      const up = await fetch(`http://127.0.0.1:${RUNNER_STREAM_PORT}${url.pathname}${url.search}`).catch(() => null);
+      if (up && up.ok) { res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' }); for await (const ch of up.body) res.write(ch); return res.end(); }
     }
     if (p === '/api/runner/stream') {
       sse(res);
