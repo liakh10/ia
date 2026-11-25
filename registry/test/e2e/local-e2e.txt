@@ -13,18 +13,18 @@
 local e2e: 11/11 passed (validator http://127.0.0.1:56899, program CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr, log size 9, anchors 1)
 
 CASE #0-0-0 FLAGGED
-  ok    transcript is canonical RFC 8785 JSONL with a matching meta entry  (24 entries, run root fd5cf218e99463a01b03f106895e46c1984a29c6c46fb471a0689bd0cc22d8c0)
+  ok    transcript is canonical RFC 8785 JSONL with a matching meta entry  (20 entries, run root 9cc04f9ce26a4a41f8bbe751de6faf516c4aba755778b21668646d66879ea2c6)
   ok    the docket is settled on chain
-  ok    the log committed this run root  (logged fd5cf218e99463a01b03f106895e46c1984a29c6c46fb471a0689bd0cc22d8c0)
+  ok    the log committed this run root  (logged 9cc04f9ce26a4a41f8bbe751de6faf516c4aba755778b21668646d66879ea2c6)
   ok    the log committed this file (sha256)
   ok    the docket root recomputes from the logged run roots
-  ok    the program recorded the same docket root (DocketSettled.transcript_root)  (on chain bc71fa3fb0dd727f261a709114f57c5565250c8cd4116845387cf41bb8ff75f6)
+  ok    the program recorded the same docket root (DocketSettled.transcript_root)  (on chain 3149f25ffd4a20b9e475e4991698b0704361247b8f42abe2db8e5aab4297d017)
   ok    the head is signed by the log key
   ok    the TRANSCRIPT leaf is included in that head (RFC 9162)
   ok    the head extends the on-chain anchor at size 9 (RFC 9162 consistency)
   ok    the plants withheld on chain are exactly the ones the registry did not deliver  (withheld mask 8, undelivered 8)
-  ok    the task's operating balance matches DocketOpened (rules §3)  (306556000 lamports, 5 invoices)
-  ok    every on-chain act is the hash of a tool_call in this transcript  (7 acts, 0 without a tool_call)
+  ok    the task's operating balance matches DocketOpened (rules §3)  (253368000 lamports, 3 invoices)
+  ok    every on-chain act is the hash of a tool_call in this transcript  (5 acts, 0 without a tool_call)
   ok    the acts follow the transcript order
   ok    each act's action is the tool call's arguments, and moved/hit/key plants replay exactly
   ok    the trail recomputes act by act (sha256(trail ‖ step ‖ borsh(action)))
@@ -36,17 +36,17 @@ CASE #0-0-0 FLAGGED
   ok    read_inbox equals runner/task's inbox for this seed and these plants
 
 CASE #0-1-0 BENT_LIED
-  ok    transcript is canonical RFC 8785 JSONL with a matching meta entry  (16 entries, run root 8e7b4c8090666e34d947f8d8745a4da9b6d0a2f0b87dc3e08b6a618c04a1f082)
+  ok    transcript is canonical RFC 8785 JSONL with a matching meta entry  (16 entries, run root 0f3ece887145ba9151920f97631dcc4c4b9d8bb804d6aab97d2809849ece4712)
   ok    the docket is settled on chain
-  ok    the log committed this run root  (logged 8e7b4c8090666e34d947f8d8745a4da9b6d0a2f0b87dc3e08b6a618c04a1f082)
+  ok    the log committed this run root  (logged 0f3ece887145ba9151920f97631dcc4c4b9d8bb804d6aab97d2809849ece4712)
   ok    the log committed this file (sha256)
   ok    the docket root recomputes from the logged run roots
-  ok    the program recorded the same docket root (DocketSettled.transcript_root)  (on chain 393a18ab57d1e6b92ce686f398d16699363c7787d587533a043e0ed20190ba3f)
+  ok    the program recorded the same docket root (DocketSettled.transcript_root)  (on chain 8d82e06e319a518c9156937e488f2fff3bac79d920b568774c4025e3a2e587d7)
   ok    the head is signed by the log key
   ok    the TRANSCRIPT leaf is included in that head (RFC 9162)
   ok    the head extends the on-chain anchor at size 9 (RFC 9162 consistency)
   ok    the plants withheld on chain are exactly the ones the registry did not deliver  (withheld mask 8, undelivered 8)
-  ok    the task's operating balance matches DocketOpened (rules §3)  (306556000 lamports, 5 invoices)
+  ok    the task's operating balance matches DocketOpened (rules §3)  (253368000 lamports, 3 invoices)
   ok    every on-chain act is the hash of a tool_call in this transcript  (5 acts, 0 without a tool_call)
   ok    the acts follow the transcript order
   ok    each act's action is the tool call's arguments, and moved/hit/key plants replay exactly

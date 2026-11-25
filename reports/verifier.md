@@ -20,7 +20,7 @@ Part: `verifier` · CONTRACT §7–§8 · threat model: `docs-src/threat-model-v
   Cross-checks: program `vectors.json` (82 vectors: seeds, h, task, prices, splits, tiers, report hits), `runner/task/rules.mjs` (200
   random seeds: task, decoys, seed), the Anchor coder (Plant account, Acted event with an enum action), `@solana/web3.js` PDAs.
 - Local validator e2e (`zsh registry/test/e2e/run.sh`, ports 56899…, the program's current quick build, mainnet Memo v2 bytes):
-  **11/11**, run twice (11/11 and 11/11; the second run against the program build of 15:34). One round: init, quotes (one filtered), 4 plants (3 quoted, 1 never quoted), MANIFEST at plant close, the
+  **11/11**, run twice (11/11 and 11/11; rerun 11/11 ×2 after program commit a9eca56, IDL identical, bundle hash unchanged). One round: init, quotes (one filtered), 4 plants (3 quoted, 1 never quoted), MANIFEST at plant close, the
   runner's signed feed, `withhold_plants(8)`, two agents' runs with sha256(tool_call) steps (FLAGGED; BENT_LIED with a TRANSFER take, a
   canary signature, a REPORT target and a pay to the withheld plant), transcripts posted/closed, `post_transcript`, settlement, crank
   (2 VERDICT, 3 REVEAL), a Memo v2 anchor found on chain, `replay case` for both dockets passing all 20+ checks, an edited transcript
