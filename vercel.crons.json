@@ -1,6 +1,13 @@
 {
-  "note": "Merged into vercel.json at launch, not before (crons cost money while nothing runs). The plant registry's crank delivers plants and publishes reveals; the index writer keeps the shared index snapshot fresh.",
+  "note": "Merged into vercel.json at launch, not before (crons cost money while nothing runs). Both routes refuse anything but `Authorization: Bearer CRON_SECRET`. /api/plant/crank: the registry's manifests, verdict and reveal leaves, anchors. /api/v1/cron: the indexer's only writer of the shared index in Blob.",
   "crons": [
-    { "path": "/api/plant/crank", "schedule": "* * * * *" }
+    {
+      "path": "/api/plant/crank",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/v1/cron",
+      "schedule": "* * * * *"
+    }
   ]
 }

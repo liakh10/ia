@@ -6,32 +6,82 @@
       "maxDuration": 30,
       "includeFiles": "{sdk/dist/**,sdk/package.json,indexer/*.js,api/v1/*.js,api/v1/openapi.json,mcp/*.js}"
     },
+    "api/v1/cron.js": {
+      "maxDuration": 60,
+      "includeFiles": "{sdk/dist/**,sdk/package.json,indexer/*.js}"
+    },
     "api/mcp.js": {
       "maxDuration": 30,
       "includeFiles": "{sdk/dist/**,sdk/package.json,indexer/*.js,api/v1/*.js,api/v1/openapi.json,mcp/*.js}"
     },
-    "api/plant/index.js": { "maxDuration": 30, "includeFiles": "{registry/dist/**,registry/idl/**}" },
-    "api/plant/[...path].js": { "maxDuration": 60, "includeFiles": "{registry/dist/**,registry/idl/**}" },
-    "api/log/index.js": { "maxDuration": 30, "includeFiles": "{registry/dist/**,registry/idl/**}" },
-    "api/log/[...path].js": { "maxDuration": 30, "includeFiles": "{registry/dist/**,registry/idl/**}" },
-    "api/geo.js": { "maxDuration": 5 }
+    "api/plant/index.js": {
+      "maxDuration": 30,
+      "includeFiles": "{registry/dist/**,registry/idl/**}"
+    },
+    "api/plant/[...path].js": {
+      "maxDuration": 60,
+      "includeFiles": "{registry/dist/**,registry/idl/**}"
+    },
+    "api/log/index.js": {
+      "maxDuration": 30,
+      "includeFiles": "{registry/dist/**,registry/idl/**}"
+    },
+    "api/log/[...path].js": {
+      "maxDuration": 30,
+      "includeFiles": "{registry/dist/**,registry/idl/**}"
+    },
+    "api/geo.js": {
+      "maxDuration": 5
+    }
   },
   "rewrites": [
-    { "source": "/v1", "destination": "/api/v1?path=" },
-    { "source": "/v1/:path*", "destination": "/api/v1?path=:path*" },
-    { "source": "/mcp", "destination": "/api/mcp" },
-    { "source": "/cases/:id", "destination": "/case" },
-    { "source": "/agents/:id", "destination": "/agent" }
+    {
+      "source": "/v1",
+      "destination": "/api/v1?path="
+    },
+    {
+      "source": "/v1/:path*",
+      "destination": "/api/v1?path=:path*"
+    },
+    {
+      "source": "/mcp",
+      "destination": "/api/mcp"
+    },
+    {
+      "source": "/cases/:id",
+      "destination": "/case"
+    },
+    {
+      "source": "/agents/:id",
+      "destination": "/agent"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
       ]
     },
-    { "source": "/ui/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, stale-while-revalidate=86400" }] }
+    {
+      "source": "/ui/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, stale-while-revalidate=86400"
+        }
+      ]
+    }
   ]
 }

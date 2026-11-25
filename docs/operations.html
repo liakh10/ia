@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Keys and operations · Internal Affairs</title>
+<meta name="description" content="Which service holds which key, which settings are secret and which are public, and what each scheduled job does.">
+<link rel="canonical" href="https://ia-sol.vercel.app/docs/operations">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Internal Affairs">
+<meta property="og:title" content="Keys and operations · Internal Affairs">
+<meta property="og:description" content="Which service holds which key, which settings are secret and which are public, and what each scheduled job does.">
+<meta property="og:url" content="https://ia-sol.vercel.app/docs/operations">
+<meta name="twitter:card" content="summary">
+
+<script src="/config.js"></script>
+<script type="module" src="/ui/app.js"></script>
+<script type="module" src="/ui/docs.js"></script>
+</head>
+<body class="page-docs" data-page="docs">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/" aria-label="Internal Affairs, home"><span class="brand-mark" aria-hidden="true">IA</span><span class="brand-name">Internal Affairs</span></a>
+  <nav class="nav" id="nav" aria-label="Main"><a href="/">Test</a><a href="/integrity">Integrity Index</a><a href="/cases">Case files</a><a href="/plant">Plant</a><a href="/sureties">Sureties</a><a href="/forecasts">Forecasts</a><a href="/docs" aria-current="page">Docs</a></nav>
+  <div class="top-end"><button class="btn small ghost" type="button" data-wallet hidden>Connect</button><button class="menu" type="button" aria-expanded="false" aria-controls="nav"><span class="menu-bars"></span><span class="sr">Menu</span></button></div>
+</header>
+<main id="main">
+<div class="docs">
+  <aside class="docs-side" aria-label="Sections">
+    <details class="docs-pick" open><summary>The paper</summary><ol class="docs-list"><li><a href="/docs"><span class="n">01</span>Abstract</a></li><li><a href="/docs/trust"><span class="n">02</span>Trust points</a></li><li><a href="/docs/methodology"><span class="n">03</span>Methodology</a></li><li><a href="/docs/tiers"><span class="n">04</span>Tiers</a></li><li><a href="/docs/plants"><span class="n">05</span>Plants</a></li><li><a href="/docs/purses-and-sureties"><span class="n">06</span>Purses and sureties</a></li><li><a href="/docs/integrity-index"><span class="n">07</span>Integrity Index</a></li><li><a href="/docs/verification"><span class="n">08</span>Verification</a></li><li><a href="/docs/forecasts"><span class="n">09</span>Forecasts</a></li><li><a href="/docs/threat-model"><span class="n">10</span>Threat model</a></li><li><a href="/docs/legal"><span class="n">11</span>Legal and ethics</a></li><li><a href="/docs/right-of-reply"><span class="n">12</span>Right of reply</a></li><li><a href="/docs/parameters"><span class="n">13</span>Parameters and fees</a></li><li><a href="/docs/phases"><span class="n">14</span>Phases</a></li><li><a href="/docs/glossary"><span class="n">15</span>Glossary</a></li><li><a href="/docs/operations" aria-current="page"><span class="n">16</span>Keys and operations</a></li></ol></details>
+  </aside>
+  <article class="prose" data-docs>
+    <p class="kicker">Which service holds which key, which settings are secret and which are public, and what each scheduled job does.</p>
+    <h1 id="keys-and-operations">Keys and operations</h1>
+<h2 id="keys">Keys<a class="anchor" href="#keys" aria-label="Link to this section">#</a></h2>
+<div class="table"><table><thead><tr><th>key</th><th>held by</th><th>can do</th><th>cannot do</th></tr></thead><tbody><tr><td>admin</td><td>the dev</td><td>pause new tests, change parameters inside the hard caps, schedule lineup and runner changes behind a delay, withdraw the treasury, close the program by rule</td><td>move a purse, a bounty or the runner fund</td></tr><tr><td>runner</td><td>the runner service</td><td>commit the harness, open dockets, start runs, post transcript roots, draw from the runner fund within the cap</td><td>plant, deposit, or act for a model outside a run</td></tr><tr><td>session keys</td><td>one per run, made by the runner</td><td>sign that run's acts until the run window closes</td><td>anything after the window, anything in another run</td></tr><tr><td>log key</td><td>the registry and log functions only</td><td>sign tree heads, anchor them on chain (it holds only fee SOL)</td><td>touch the program's accounts</td></tr><tr><td>seal key</td><td>the registry and log functions only</td><td>encrypt plant texts, canary seeds and transcripts at rest</td><td>anything on chain</td></tr><tr><td>canary keys</td><td>made per KEY plant, sealed until the test settles</td><td>be signed with by an agent, which is the catch</td><td>hold anything of value</td></tr></tbody></table></div>
+<h2 id="secret-and-public-settings">Secret and public settings<a class="anchor" href="#secret-and-public-settings" aria-label="Link to this section">#</a></h2>
+<p>The secrets live only where they are used:</p>
+<ul><li><code>IA_LOG_KEY</code> (the log's secret keypair) and <code>IA_SEAL_KEY</code> are read by the plant registry and log routes only.</li><li>The read API, the MCP server and any reader pin the log's <strong>public</strong> key instead, in <code>IA_LOG_KEYS</code> (base58, comma separated). A reader
+never takes the key from the log itself, so a log that changed keys would fail every check.</li><li><code>CRON_SECRET</code> guards the scheduled routes below; <code>BLOB_READ_WRITE_TOKEN</code> is the storage token.</li><li>Public settings: <code>SOLANA_RPC</code>, <code>IA_PROGRAM</code>, <code>IA_LOG_URL</code>, <code>IA_REGISTRY_URL</code>.</li></ul>
+<p>No key is ever printed, committed or sent to a page.</p>
+<h2 id="scheduled-jobs">Scheduled jobs<a class="anchor" href="#scheduled-jobs" aria-label="Link to this section">#</a></h2>
+<p>Both refuse any caller without <code>Authorization: Bearer CRON_SECRET</code>.</p>
+<div class="table"><table><thead><tr><th>route</th><th>what it does</th></tr></thead><tbody><tr><td><code>/api/plant/crank</code></td><td>fixes the delivery manifest when a plant window closes, appends verdict and reveal leaves when a test settles, cleans up old quotes, anchors the log head on chain when it grew</td></tr><tr><td><code>/api/v1/cron</code></td><td>the indexer's only writer: pulls new program events, replays them, and saves the shared index every read API instance loads</td></tr></tbody></table></div>
+<p>Anyone can open a test, settle a docket or reap a closed round without us; the jobs only keep the off-chain records current.</p>
+    <nav class="docs-next" aria-label="Pages"><a class="prev" href="/docs/glossary"><span>Previous</span>Glossary</a></nav>
+  </article>
+  <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ol><li class="d2"><a href="#keys">Keys</a></li><li class="d2"><a href="#secret-and-public-settings">Secret and public settings</a></li><li class="d2"><a href="#scheduled-jobs">Scheduled jobs</a></li></ol></aside>
+</div>
+</main>
+<footer class="foot">
+  <div class="foot-grid">
+    <div><div class="ca" data-ca></div><p class="foot-links" data-token-links></p></div>
+    <div><h2>Watch</h2><ul><li><a href="/">The current test</a></li><li><a href="/live">Live runs</a></li><li><a href="/integrity">Integrity Index</a></li><li><a href="/cases">Case files</a></li></ul></div><div><h2>Take part</h2><ul><li><a href="/plant">Plant bait</a></li><li><a href="/sureties">Stand surety</a></li><li><a href="/forecasts">Free forecasts</a></li></ul></div><div><h2>Check</h2><ul><li><a href="/docs/trust">Trust points</a></li><li><a href="/docs/methodology">Methodology</a></li><li><a href="/log">Transparency log</a></li><li><a href="/status">Status</a></li></ul></div><div><h2>Record</h2><ul><li><a href="/docs">The paper</a></li><li><a href="/developers">Developers</a></li><li><a href="/changelog">Changelog</a></li><li><a href="/reports">Test reports</a></li><li><a href="/docs/right-of-reply">Right of reply</a></li></ul></div>
+  </div>
+  <dl class="foot-facts">
+    <div><dt>Program</dt><dd class="mono">CAnntf6D3Ec3jZpzqSDmShvWbmvF6Dhk9rJYR1jxyVnr</dd></div>
+  </dl>
+  <p class="foot-note">Rates are from our tests, per exact model version, with 95% intervals and every run published. Agents act only inside a closed program ledger against addresses we own; real SOL moves only at settlement, by rule. Forecasts are free.</p>
+</footer>
+</body>
+</html>
