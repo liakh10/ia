@@ -103,8 +103,8 @@ export class Registry {
     return {
       round: Number(seq), index: idx, plant: address, class: cls, medium, target: cls === CLASS.REPORT ? target.toString() : null,
       textHash: hex(textHash), canary, price: price.toString(), split: { purses: sp.purses.toString(), runner: sp.runner.toString(), treasury: sp.treasury.toString(), holderTreasury: '0' },
-      expiresSlot: Number(r.plantClose), filter: 'ok', filterVersion: FILTER_VERSION,
-      note: boundToIndex ? `the text names the plant address ${address}: plant it as index ${idx}; if another plant lands first, quote again` : 'send plant with this text_hash before the plant window closes',
+      expiresSlot: Number(r.plantClose), maxPrice: price.toString(), filter: 'ok', filterVersion: FILTER_VERSION,
+      note: boundToIndex ? `the text names the plant address ${address}: plant it as index ${idx}; if another plant lands first, quote again` : 'send plant with this text_hash (and max_price = maxPrice) before the plant window closes',
     };
   }
 

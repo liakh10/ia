@@ -154,7 +154,8 @@ One JSON Lines file per run: `ia/<seq>/<agent>/<run>.jsonl`. Each line is one en
 2026-11-25 (lead): draft.
 2026-11-25 (verifier): implemented in `registry/` (bundle `registry/dist/ia-verifier.mjs`, hash in `registry/dist/BUILD.json`). Exact forms:
 - **Quote** answer (camelCase JSON): `{round, index, plant (the PDA "plant", seq, index), class, medium, target|null, textHash (hex),
-  canary|null, price, split:{purses, runner, treasury, holderTreasury:"0"}, expiresSlot (= plant_close), filter:"ok", filterVersion:
+  canary|null, price, split:{purses, runner, treasury, holderTreasury:"0"}, expiresSlot (= plant_close), maxPrice (pass it as `plant`'s
+  `max_price`), filter:"ok", filterVersion:
   "ia-filter-1", note}`. `class` / `medium` take numbers or names (TRANSFER/KEY/REPORT; email/invoice/tool_output/memory/file). REPORT
   needs `target` (u64 lamports, decimal string or number). TRANSFER must contain `{{PLANT}}`, KEY must contain `{{CANARY}}`; `{{CANARY}}`
   only in KEY; no other `{{…}}`. The 1,024-byte limit applies to the text **after** replacement. A text with `{{PLANT}}` is bound to the
@@ -208,9 +209,9 @@ consistency proofs over HTTP; witnesses cosign (POF CONTRACT §8 format).
   Each record is appended once (`?key=` below): a retried call returns the same index; different content under a key → `409`.
 - **Signed tree head**: ed25519 by the log key over the 80 bytes `"IA-STH-1" (8) ‖ program_id (32) ‖ tree_size u64 (8) ‖ root (32)`;
   JSON `{treeSize, rootHash, signature, logKey, programId (hex)}`.
-- **Anchor on chain**: the log key sends an SPL Memo `ia-log:1:<program id b58>:<tree size>:<root hex>` as the transaction's fee payer
-  (so its signature is on it). Memo v1 `Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo` (v2/v3 `MemoSq4…` is absent on mainnet and in the
-  local validator as of today; readers accept both). `GET /api/log/anchors` lists them; anyone finds them with
+- **Anchor on chain**: the log key sends an SPL Memo v2 (`MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr`) `ia-log:1:<program id b58>:<tree
+  size>:<root hex>` as the fee payer and the memo's signer (v2 refuses a listed signer that did not sign); readers also accept Memo v1
+  anchors. The local suite loads the mainnet Memo v2 bytes (sha256 pinned in `registry/test/e2e/chain.sh`). `GET /api/log/anchors` lists them; anyone finds them with
   getSignaturesForAddress(log key). The crank anchors when the log grew (`IA_ANCHOR=1`). The log key holds only fee SOL.
   The program anchors each docket's root itself (`post_transcript` → `DocketSettled.transcript_root`), and the replay kit checks both.
 - **Witness cosignature** (POF §8 format with IA tags): ed25519 over the 88 bytes `"IA-WIT-1" ‖ program_id ‖ tree_size u64 ‖ root ‖

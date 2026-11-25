@@ -43,12 +43,12 @@ const compactU16 = (n: number): Uint8Array => {
   return Uint8Array.from(out);
 };
 
-/** SPL Memo v1: executable on mainnet and in the local validator's genesis (Memo v2/v3 `MemoSq4…` is absent from both as of
- *  2026-11-25). The log key is the fee payer, so the transaction's own signature proves who published the memo. */
-export const MEMO_PROGRAM = 'Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo';
-export const MEMO_PROGRAMS = [MEMO_PROGRAM, 'MemoSq4gqABAXKb96qnH8TySNcWxMyWCqXgDLGmfcHr'];
+/** SPL Memo v2 (checks that every listed signer signed); v1 `Memo1Uhk…` anchors are accepted by readers too. The log key is the fee
+ *  payer and the memo's listed signer. The local validator loads the same mainnet bytes (registry/test/e2e/chain.sh). */
+export const MEMO_PROGRAM = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
+export const MEMO_PROGRAMS = [MEMO_PROGRAM, 'Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo'];
 
-/** a legacy transaction: one signer (the fee payer, listed on the memo instruction too), one memo instruction */
+/** a legacy transaction: one signer (the fee payer and the memo's signer), one memo instruction */
 export function memoTransaction(signer: Signer, memo: string, recentBlockhash: string): Uint8Array {
   const data = text(memo);
   if (data.length > 500) throw new IaError('INTERNAL', 'memo too long', 500);

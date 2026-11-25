@@ -1,6 +1,6 @@
-/* Heads anchored on chain (CONTRACT §8): the log key sends an SPL Memo `ia-log:1:<program id>:<tree size>:<root hex>` as the
-   transaction's fee payer (so its signature is on the transaction): the chain records "the log key published this head at this
-   slot". Anyone finds the anchors with getSignaturesForAddress(log key) and checks
+/* Heads anchored on chain (CONTRACT §8): the log key sends an SPL Memo v2 `ia-log:1:<program id>:<tree size>:<root hex>` as the
+   fee payer and the memo's signer (Memo v2 refuses a listed signer that did not sign): the chain records "the log key published
+   this head at this slot". Anyone finds the anchors with getSignaturesForAddress(log key) and checks
    any later head against them with a consistency proof. A docket's transcript root is also anchored by the program itself
    (post_transcript → DocketSettled.transcript_root). */
 import { IaError, b58decode, hex, toB58, untext } from './codec.js';
