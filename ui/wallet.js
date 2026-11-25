@@ -11,7 +11,7 @@ try {
   dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: { register } }));
 } catch {}
 
-const W = { name: null, address: null, sign: null, signMessage: null };
+const W = { name: null, address: null, sign: null, signMessage: null, signAndSend: null };
 const emit = () => dispatchEvent(new CustomEvent('ia:wallet', { detail: { address: W.address, name: W.name } }));
 export const address = () => W.address;
 const KEY = 'ia:wallet';
@@ -40,13 +40,18 @@ export async function available() {
         address: acc.address,
         sign: async tx => { const out = await w.features['solana:signTransaction'].signTransaction({ account: acc, chain: chain(), transaction: tx.serialize({ requireAllSignatures: false, verifySignatures: false }) }); return Transaction.from(out[0].signedTransaction); },
         signMessage: async bytes => (await w.features['solana:signMessage'].signMessage({ account: acc, message: bytes }))[0].signature,
+        signAndSend: w.features['solana:signAndSendTransaction'] ? async tx => base58((await w.features['solana:signAndSendTransaction'].signAndSendTransaction({ account: acc, chain: chain(), transaction: tx.serialize({ requireAllSignatures: false, verifySignatures: false }) }))[0].signature) : null,
       };
     } });
   }
   const injected = [['Phantom', window.phantom && window.phantom.solana], ['Solflare', window.solflare], ['Backpack', window.backpack && window.backpack.solana]];
   for (const [name, p] of injected) if (p && !seen.has(name)) list.push({ id: 'inj:' + name, name, connect: async () => {
     const r = await p.connect();
-    return { address: (r && r.publicKey ? r.publicKey : p.publicKey).toString(), sign: tx => p.signTransaction(tx), signMessage: async bytes => { const s = await p.signMessage(bytes, 'utf8'); return s.signature || s; } };
+    return {
+      address: (r && r.publicKey ? r.publicKey : p.publicKey).toString(), sign: tx => p.signTransaction(tx),
+      signMessage: async bytes => { const s = await p.signMessage(bytes, 'utf8'); return s.signature || s; },
+      signAndSend: p.signAndSendTransaction ? async tx => { const o = await p.signAndSendTransaction(tx); const g = o && o.signature !== undefined ? o.signature : o; return typeof g === 'string' ? g : base58(g); } : null,
+    };
   } });
   return list;
 }
@@ -68,7 +73,7 @@ export async function connect() {
   if (!list.length) throw Error('No Solana wallet found. Install Phantom, Solflare or Backpack, or open this page in your wallet app.');
   const w = list.length === 1 ? list[0] : await picker(list);
   const c = await w.connect();
-  Object.assign(W, { name: w.name, ...c });
+  Object.assign(W, { name: w.name, sign: null, signMessage: null, signAndSend: null, ...c });
   try { localStorage.setItem(KEY, w.id); } catch {}
   emit();
   return W.address;
@@ -84,8 +89,11 @@ export async function send(instructions, explain = e => e.message) {
   const raw = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
   const sim = await rpc('simulateTransaction', [btoa(String.fromCharCode(...raw)), { encoding: 'base64', sigVerify: false, replaceRecentBlockhash: true, commitment: 'confirmed' }]);
   if (sim.value.err) { const e = Error('simulation failed'); e.logs = sim.value.logs; throw Error(explain(e)); }
-  const signed = await W.sign(tx);
-  const sig = await rpc('sendTransaction', [btoa(String.fromCharCode(...signed.serialize())), { encoding: 'base64', preflightCommitment: 'confirmed' }]);
+  // the wallet signs and sends through its own RPC (this site's /api/rpc is read-only); the lab's dev wallet only signs, and the lab
+  // server relays its transaction to the lab chain
+  let sig;
+  if (W.signAndSend) sig = await W.signAndSend(tx);
+  else { const signed = await W.sign(tx); sig = await rpc('sendTransaction', [btoa(String.fromCharCode(...signed.serialize())), { encoding: 'base64', preflightCommitment: 'confirmed' }]); }
   for (let i = 0; i < 60; i++) {
     const s = (await rpc('getSignatureStatuses', [[sig]])).value[0];
     if (s && (s.confirmationStatus === 'confirmed' || s.confirmationStatus === 'finalized')) { if (s.err) throw Error('the transaction failed on chain'); return sig; }

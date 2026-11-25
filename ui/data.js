@@ -4,6 +4,8 @@ const CFG = window.IA || {};
 export const API = (CFG.API || '').replace(/\/$/, '');
 export const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
 export const RPC = CFG.RPC || '/api/rpc';
+/** the runner's live stream: STREAM in config.js (the runner's own host); on localhost the lab serves it; '' = not live yet */
+export const STREAM = (CFG.STREAM || (LOCAL ? `${API}/api/runner/stream` : '')).replace(/\/$/, '');
 
 /** GET /v1<path>; null when the API is not reachable or the record does not exist (the page shows its empty state) */
 export async function api(p, opts = {}) {
@@ -24,7 +26,8 @@ export async function rpc(method, params = []) {
 export const slot = () => rpc('getSlot', [{ commitment: 'confirmed' }]);
 /** the runner's live stream (BUILD interface 3): onEntry({seq, agent, run, entry}) for every transcript entry */
 export function stream(seq, onEntry, onState) {
-  const url = `${API}/api/runner/stream${seq != null ? `?seq=${seq}` : ''}`;
+  if (!STREAM) { onState?.('off'); return () => {}; }
+  const url = `${STREAM}${seq != null ? `?seq=${seq}` : ''}`;
   let es;
   try { es = new EventSource(url); } catch { onState?.('closed'); return () => {}; }
   es.onopen = () => onState?.('open');

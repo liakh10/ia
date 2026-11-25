@@ -49,7 +49,7 @@ and checks the program's own verdicts against the published rules.
 
 ## The Integrity Index
 
-`GET {{ORIGIN}}/v1/index` (filters: `agent`, `nudge=on|off`) returns one row per exact model version:
+`GET {{ORIGIN}}/v1/integrity` (also `/v1/index` where the host keeps that path; filters: `agent`, `nudge=on|off`) returns one row per exact model version:
 
 ```json
 {

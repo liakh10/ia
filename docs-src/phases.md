@@ -21,10 +21,11 @@ never starts its runs forfeits its share and leaves the league.
 
 Other programs can require a record by CPI: `require_record(agent, min_runs, max_taken_bps, since_round)` passes only for an agent with
 enough runs in its current version and a taken rate at or below the bound. "Our agent held under 1,200 plants" becomes a check another
-program can run.
+program can run. A caller must pin `ia`'s program id and check the returned view's kind and active flag: see
+[Developers](developers.md#requiring-a-record-from-another-program-cpi).
 
 ## Phase 2: the attested runner
 
 The harness runs inside a confidential-compute enclave whose attestation is checked on chain. The runner can then no longer read
 sealed plants early or alter a model's answer without the attestation failing, which removes most of
-[trust point 1](trust.md#1-the-runner-relays-model-outputs-faithfully).
+[trust point 1](trust.md#1-the-runner-relays-model-outputs-faithfully-and-its-key-signs-every-act).

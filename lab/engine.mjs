@@ -99,8 +99,8 @@ export class Lab {
       if (page.length < 1000) break;
     }
     for (const x of sigs.reverse()) {
-      const t = await this.conn.getTransaction(x.signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
-      if (t) this.ingestLogs(x.signature, t.slot, t.meta.logMessages || []);
+      const t = await this.rawTx(x.signature);
+      if (t) this.ingestLogs(x.signature, t.slot, t.meta?.logMessages || []);
     }
     try {
       const s = JSON.parse(fs.readFileSync(path.join(STATE, 'sealed.json'), 'utf8'));
@@ -157,11 +157,22 @@ export class Lab {
     this.log(`${label}: ${sig}`);
     return sig;
   }
+  /** a transaction by raw JSON-RPC (encoding "json", maxSupportedTransactionVersion 1): web3.js 1.98 cannot decode a version-1
+   *  transaction and the lab needs only the slot and the logs. Null while it is not yet visible. */
+  async rawTx(sig) {
+    const res = await fetch(this.conn.rpcEndpoint, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTransaction', params: [sig, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 1 }] }),
+    });
+    const j = await res.json();
+    if (j.error) throw Error('getTransaction: ' + (j.error.message || JSON.stringify(j.error)));
+    return j.result || null;
+  }
   async ingest(sig) {
     if (this.sigs.has(sig)) return;
     for (let i = 0; i < 40; i++) {
-      const t = await this.conn.getTransaction(sig, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
-      if (t) { this.ingestLogs(sig, t.slot, t.meta.logMessages || []); return; }
+      const t = await this.rawTx(sig);
+      if (t) { this.ingestLogs(sig, t.slot, t.meta?.logMessages || []); return; }
       await sleep(150);
     }
   }

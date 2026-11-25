@@ -28,10 +28,11 @@ The secrets live only where they are used:
 | `CRON_SECRET` | secret | the two scheduled routes below |
 | `BLOB_READ_WRITE_TOKEN` | secret: the storage token | the registry, the log and the indexer |
 | `IA_LOG_KEYS` | public: the log's base58 public key(s) | the read API, the MCP server and any reader, which pin it and never take the key from the log itself |
-| `SOLANA_RPC` | public | every function |
+| `SOLANA_RPC` | the RPC URL (it may carry a provider key, so it is treated as secret) | every function, and `/api/rpc`: the pages' read-only JSON-RPC proxy (reads only, no transaction sending; wallets send their own; the URL never appears in an answer) |
 | `IA_PROGRAM` | public: the program id | the registry and log |
 | `IA_ANCHOR` | `1` from launch | the registry crank: anchor the log head on chain when it grew |
 | `IA_LOG_URL`, `IA_REGISTRY_URL` | public | the read API |
+| `STREAM` in `config.js` | public: the runner's live stream URL on its own host | `/live` and `/status`; empty until the first test runs, and the pages then never connect |
 
 No key is ever printed, committed or sent to a page.
 

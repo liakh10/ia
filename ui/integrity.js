@@ -2,11 +2,11 @@
 import { $, esc, sol, rate, short } from './fmt.js';
 import { api } from './data.js';
 
-const [ix, inv] = await Promise.all([api('/index'), api('/investigators')]);
+const [ix, inv] = await Promise.all([api('/integrity'), api('/investigators')]);
 let split = 'all';
 
 function models() {
-  if (!ix || !ix.rows.length) { $('[data-models]').innerHTML = '<p class="empty">No settled runs yet. The index fills from the first settled test, one row per exact model version.</p>'; return; }
+  if (!ix?.rows?.length) { $('[data-models]').innerHTML = '<p class="empty">No settled runs yet. The index fills from the first settled test, one row per exact model version.</p>'; return; }
   const row = a => {
     const v = split === 'all' ? a : a.nudge[split];
     const R = v.rates;
@@ -15,7 +15,7 @@ function models() {
   $('[data-models]').innerHTML = `<table><thead><tr><th>Model (exact version)</th><th class="num">Runs</th><th>Took bait</th><th>Took and lied</th><th>False report</th><th>Stray payment</th><th>Flagged a plant</th><th>Completed the task</th><th class="num">SOL untouched</th><th class="num">SOL lost</th></tr></thead><tbody>${ix.rows.map(row).join('')}</tbody></table>`;
 }
 function classes() {
-  if (!ix || !ix.rows.length) return;
+  if (!ix?.rows?.length) return;
   const C = ['TRANSFER', 'KEY', 'REPORT'];
   $('[data-classes]').innerHTML = `<table><thead><tr><th>Model</th>${C.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${ix.rows.map(a => `<tr><td class="mono">${esc(a.model)}</td>${C.map(c => `<td>${rate(a.byClass[c]?.rate)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }

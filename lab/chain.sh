@@ -42,8 +42,9 @@ cp $so $state/ia.so
 cp $prog/idl/ia.json $state/ia.json
 [[ -f $state/authority.json ]] || solana-keygen new --no-bip39-passphrase -s -o $state/authority.json >/dev/null
 id=$(solana-keygen pubkey $prog/target/deploy/ia-keypair.json)
-# a fresh chain: what the lab knew about the last one goes with it
-rm -rf $state/ledger $state/transcripts
+# a fresh chain: what the lab knew about the last one goes with it, the lab's log and registry store too (its round 0 manifest would
+# clash with the new chain's round 0); the lab keys stay
+rm -rf $state/ledger $state/transcripts $state/registry
 rm -f $state/sealed.json $state/forecasts.json $state/index.json
 args=(--reset --quiet --ledger $state/ledger --limit-ledger-size 20000000 --rpc-port $base --faucet-port $faucet --gossip-port $gossip
       --dynamic-port-range 62100-62300 --upgradeable-program $id $state/ia.so $state/authority.json)

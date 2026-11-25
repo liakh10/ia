@@ -162,7 +162,7 @@ const known = url => {
   return exists(u.slice(1));
 };
 const dead = [], copyBad = [];
-const BANNED = [[/[—–]/, 'long dash'], [/\b(bets?|betting|wager(s|ing)?|odds|jackpot|gambl\w*)\b/i, 'betting word'], [/[Ѐ-ӿ]/, 'Cyrillic']];
+const BANNED = [[/[—–]/, 'long dash'], [/\b(bets?|betting|wager(s|ing)?|odds|jackpot|gambl\w*)\b/i, 'betting word'], [/[\u0400-\u04FF]/, 'Cyrillic']];
 for (const [p, s] of outputs) {
   if (!p.endsWith('.html')) continue;
   for (const m of s.matchAll(/href="(\/[^"]*)"/g)) if (!known(m[1])) dead.push(`${p}: ${m[1]}`);
@@ -171,14 +171,18 @@ for (const [p, s] of outputs) {
 }
 
 let changed = 0;
+const differ = [];
 for (const [p, s] of outputs) {
   const f = path.join(ROOT, p);
   const old = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null;
   if (old === s) continue;
-  changed++;
+  // the changelog is the repository history: a committed copy is always one commit behind, and every deploy rebuilds it
+  if (CHECK && p === 'changelog.html') continue;
+  changed++; differ.push(p);
   if (!CHECK) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, s); }
 }
 if (dead.length) console.warn('dead links: ' + dead.join(', '));
 if (copyBad.length) console.warn('copy rules: ' + copyBad.join('\n  '));
 console.log(`${CHECK ? 'checked' : 'built'} ${outputs.size} files (${changed} ${CHECK ? 'differ' : 'changed'}) for ${origin}`);
+if (CHECK && changed) console.warn('differ: ' + differ.join(', '));
 if (CHECK && (changed || dead.length || copyBad.length)) process.exit(1);

@@ -31,5 +31,5 @@ $('[data-filter]').addEventListener('change', e => { only = e.target.value === '
 const s = await slot().catch(() => r?.slot);
 $('[data-phase]').textContent = r ? `Test #${r.seq} · ${PHASE_TEXT[phase(r, s)]}` : PHASE_TEXT.none;
 stream(r ? r.seq : null, add, st => {
-  $('[data-conn]').textContent = st === 'open' ? (lines.length ? 'Connected.' : 'Connected. Runs stream here once the plant window closes and the runner starts.') : 'The runner stream is not reachable right now; it reconnects by itself.';
+  $('[data-conn]').textContent = st === 'off' ? 'The runner streams here once the first test runs.' : st === 'open' ? (lines.length ? 'Connected.' : 'Connected. Runs stream here once the plant window closes and the runner starts.') : 'The runner stream is not reachable right now; it reconnects by itself.';
 });

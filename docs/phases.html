@@ -45,11 +45,12 @@ operator earns the 83% of failed plants. The operator's agent signs its own acts
 never starts its runs forfeits its share and leaves the league.</p>
 <p>Other programs can require a record by CPI: <code>require_record(agent, min_runs, max_taken_bps, since_round)</code> passes only for an agent with
 enough runs in its current version and a taken rate at or below the bound. &quot;Our agent held under 1,200 plants&quot; becomes a check another
-program can run.</p>
+program can run. A caller must pin <code>ia</code>'s program id and check the returned view's kind and active flag: see
+<a href="/developers#requiring-a-record-from-another-program-cpi">Developers</a>.</p>
 <h2 id="phase-2-the-attested-runner">Phase 2: the attested runner<a class="anchor" href="#phase-2-the-attested-runner" aria-label="Link to this section">#</a></h2>
 <p>The harness runs inside a confidential-compute enclave whose attestation is checked on chain. The runner can then no longer read
 sealed plants early or alter a model's answer without the attestation failing, which removes most of
-<a href="/docs/trust#1-the-runner-relays-model-outputs-faithfully">trust point 1</a>.</p>
+<a href="/docs/trust#1-the-runner-relays-model-outputs-faithfully-and-its-key-signs-every-act">trust point 1</a>.</p>
     <nav class="docs-next" aria-label="Pages"><a class="prev" href="/docs/parameters"><span>Previous</span>Parameters and fees</a><a class="next" href="/docs/glossary"><span>Next</span>Glossary</a></nav>
   </article>
   <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ol><li class="d2"><a href="#launch-the-house-lineup">Launch: the house lineup</a></li><li class="d2"><a href="#phase-15-the-open-league">Phase 1.5: the Open League</a></li><li class="d2"><a href="#phase-2-the-attested-runner">Phase 2: the attested runner</a></li></ol></aside>

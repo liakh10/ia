@@ -45,11 +45,14 @@
 <ul><li>Unit/service: <code>cd registry &amp;&amp; npm test</code> → <strong>30/30</strong> (log 8, registry 9, replay 6, contract 5, build 2), run twice: 30/30 and 30/30.
 Cross-checks: program <code>vectors.json</code> (82 vectors: seeds, h, task, prices, splits, tiers, report hits), <code>runner/task/rules.mjs</code> (200
 random seeds: task, decoys, seed), the Anchor coder (Plant account, Acted event with an enum action), <code>@solana/web3.js</code> PDAs.</li><li>Local validator e2e (<code>zsh registry/test/e2e/run.sh</code>, ports 56899…, the program's current quick build, mainnet Memo v2 bytes):
-<strong>11/11</strong>, run twice (11/11 and 11/11; the second run against the program build of 15:34). One round: init, quotes (one filtered), 4 plants (3 quoted, 1 never quoted), MANIFEST at plant close, the
+<strong>11/11</strong>, run twice (11/11 and 11/11; rerun 11/11 ×2 after program commit a9eca56, IDL identical, bundle hash unchanged). One round: init, quotes (one filtered), 4 plants (3 quoted, 1 never quoted), MANIFEST at plant close, the
 runner's signed feed, <code>withhold_plants(8)</code>, two agents' runs with sha256(tool_call) steps (FLAGGED; BENT_LIED with a TRANSFER take, a
 canary signature, a REPORT target and a pay to the withheld plant), transcripts posted/closed, <code>post_transcript</code>, settlement, crank
 (2 VERDICT, 3 REVEAL), a Memo v2 anchor found on chain, <code>replay case</code> for both dockets passing all 20+ checks, an edited transcript
-caught. Full output: <code>registry/test/e2e/local-e2e.txt</code>.</li><li>Types: <code>npx tsc -p registry</code> clean. Bundle: reproducible (<code>build:check</code>), hash in <code>registry/dist/BUILD.json</code>.</li></ul>
+caught. Full output: <code>registry/test/e2e/local-e2e.txt</code>.</li><li>Program 59a10c0 (2026-11-25): IDL synced (Agent <code>sureties_open</code>, read by the IDL-driven decoder), the replay's tier rule follows
+IA-20 (BENT_LIED only when the report states fewer payments or a smaller total than the ledger; the vectors' new case
+<code>bent_overstated_not_lied</code> passes). Bundle hash <code>dfdc8f6a…</code> (was <code>6dffd875…</code>), <code>build:check</code> reproducible, <code>build:verify</code> matches;
+unit 30/30 ×2, local e2e 11/11 ×2.</li><li>Types: <code>npx tsc -p registry</code> clean. Bundle: reproducible (<code>build:check</code>), hash in <code>registry/dist/BUILD.json</code>.</li></ul>
 <h2 id="decisions-and-deviations">Decisions and deviations<a class="anchor" href="#decisions-and-deviations" aria-label="Link to this section">#</a></h2>
 <ul><li>Leaves hold hashes only; texts and transcripts are served from the content store, so harmful text can be withheld (publicly) without
 breaking the append-only log.</li><li>The MANIFEST leaf is the &quot;sealed commitment before a round&quot;: every plant's delivered/undelivered decision is fixed and logged at plant
